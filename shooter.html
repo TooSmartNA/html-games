@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RETRO SWARM</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+    canvas { display: block; cursor: crosshair; max-width: 100vw; max-height: 100vh;
+             box-shadow: 0 0 60px rgba(0,255,255,0.15), 0 0 120px rgba(0,255,255,0.05); }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+'use strict';
+
+const canvas = document.getElementById('game');
+const ctx    = canvas.getContext('2d');
+const W = 900, H = 660;
+canvas.width = W; canvas.height = H;
+
+// ── States ────────────────────────────────────────────────────────────────────
+const S = { MENU: 0, PLAYING: 1, SHOP: 2, GAME_OVER: 3 };
+let state = S.MENU;
+
+let player, waveManager, bullets, particles, floatTexts;
+let score, coins, waveCoins;
+let weapon = 'pistol';
+let ownedWeapons = new Set(['pistol']);
+let mouseX = W / 2, mouseY = H / 2;
+let mouseDown = false;
+let keys = {};
+let frame = 0, blinkT = 0;
+
+// ── Weapon Definitions ────────────────────────────────────────────────────────
+const WDEFS = {
+  pistol:  { name:'PISTOL',        cost:0,   cd:9,  dmg:10, spd:14, r:4,  pellets:1, spread:0,    col:'#ffff00', glow:'#ffcc00', desc:'Reliable sidearm',    sub:'Dmg 10  ·  CD 9'  },
+  shotgun: { name:'SHOTGUN',       cost:80,  cd:32, dmg:18, spd:11, r:5,  pellets:5, spread:0.32, col:'#ff8800', glow:'#ff6600', desc:'5-pellet spread',     sub:'Dmg 18  ·  CD 32' },
+  smg:     { name:'SMG',           cost:120, cd:3,  dmg:5,  spd:16, r:3,  pellets:1, spread:0.06, col:'#00ffff', glow:'#00aaff', desc:'Blazing fire rate',   sub:'Dmg 5   ·  CD 3'  },
+  plasma:  { name:'PLASMA CANNON', cost:200, cd:50, dmg:65, spd:8,  r:10, pellets:1, spread:0,    col:'#cc00ff', glow:'#9900cc', desc:'Massive charge',      sub:'Dmg 65  ·  CD 50' },
+};
+const WPN_KEYS  = Object.keys(WDEFS);
+const WPN_ICONS = { pistol:'[·]', shotgun:'[=]', smg:'[—]', plasma:'[*]' };
+
+// ── Power-up Definitions ──────────────────────────────────────────────────────
+const PDEFS = [
+  { key:'medkit', name:'MEDKIT',   cost:30, desc:'Restore 40 HP',   col:'#ff4466', icon:'♥', max:99 },
+  { key:'speed',  name:'SPEED UP', cost:50, desc:'+20% Move Speed', col:'#00ff88', icon:'▶', max:3  },
+  { key:'damage', name:'DMG UP',   cost:60, desc:'+8 Bullet Dmg',   col:'#ff8800', icon:'✦', max:4  },
+  { key:'shield', name:'SHIELD',   cost:80, desc:'Absorbs next hit',col:'#4488ff', icon:'◈', max:1  },
+];
+
+// ── Shop layout ───────────────────────────────────────────────────────────────
+const CW = 195, CGAP = 13;
+const CX0 = Math.floor((W - (CW * 4 + CGAP * 3)) / 2);
+const WY = 108, WH = 152;
+const PY = 285, PH = 112;
+const BTN_Y = 420, BTN_H = 46, BTN_W = 220;
+function cx(i) { return CX0 + i * (CW + CGAP); }
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - r.left) * (W / r.width);
+  mouseY = (e.clientY - r.top)  * (H / r.height);
+});
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  mouseDown = true;
+  if      (state === S.MENU)      initGame();
+  else if (state === S.GAME_OVER) { state = S.MENU; blinkT = 0; }
+  else if (state === S.SHOP)      handleShopClick(mouseX, mouseY);
+});
+canvas.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
+
+// ── Player ────────────────────────────────────────────────────────────────────
+class Player {
+  constructor() {
+    this.x = W / 2; this.y = H / 2;
+    this.baseSpeed = 4; this.speed = 4;
+    this.r = 18;
+    this.hp = 100; this.maxHp = 100;
+    this.angle = 0;
+    this.iframes = 0; this.shootCd = 0;
+    this.dmgBonus = 0; this.speedLevel = 0;
+    this.hasShield = false; this.shieldFlash = 0;
+  }
+
+  update() {
+    if (keys['ArrowLeft']  || keys['KeyA']) this.x -= this.speed;
+    if (keys['ArrowRight'] || keys['KeyD']) this.x += this.speed;
+    if (keys['ArrowUp']    || keys['KeyW']) this.y -= this.speed;
+    if (keys['ArrowDown']  || keys['KeyS']) this.y += this.speed;
+    this.x = Math.max(this.r, Math.min(W - this.r, this.x));
+    this.y = Math.max(this.r, Math.min(H - this.r, this.y));
+    this.angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+    if (this.iframes > 0)    this.iframes--;
+    if (this.shootCd > 0)    this.shootCd--;
+    if (this.shieldFlash > 0) this.shieldFlash--;
+  }
+
+  tryShoot() {
+    const wd = WDEFS[weapon];
+    if (this.shootCd > 0) return [];
+    this.shootCd = wd.cd;
+    const out = [];
+    for (let p = 0; p < wd.pellets; p++) {
+      const a = this.angle + (Math.random() - 0.5) * wd.spread * 2;
+      out.push(new Bullet(
+        this.x + Math.cos(a) * (this.r + 16),
+        this.y + Math.sin(a) * (this.r + 16),
+        Math.cos(a), Math.sin(a)
+      ));
+    }
+    return out;
+  }
+
+  takeDamage(dmg) {
+    if (this.iframes > 0) return;
+    if (this.hasShield) { this.hasShield = false; this.shieldFlash = 40; this.iframes = 40; return; }
+    this.hp = Math.max(0, this.hp - dmg);
+    this.iframes = 60;
+  }
+
+  draw() {
+    // Shield ring
+    if (this.hasShield || this.shieldFlash > 0) {
+      const alpha = this.hasShield ? 0.5 + 0.2 * Math.sin(frame * 0.15) : (this.shieldFlash / 40) * 0.6;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = '#4488ff'; ctx.shadowBlur = 20;
+      ctx.strokeStyle = '#88aaff'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r + 9, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+    if (this.iframes > 0 && !this.hasShield && Math.floor(this.iframes / 5) % 2 === 1) return;
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 22;
+    ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#003344'; ctx.fill();
+    ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(-4, -4, this.r * 0.38, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,255,255,0.18)'; ctx.fill();
+
+    ctx.rotate(this.angle);
+    if (weapon === 'pistol') {
+      ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#88ddee'; ctx.fillRect(this.r - 2, -4, 14, 8);
+      ctx.fillStyle = '#ffffff';  ctx.fillRect(this.r + 9, -3, 9, 6);
+    } else if (weapon === 'shotgun') {
+      ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 12;
+      ctx.fillStyle = '#cc6600';
+      ctx.fillRect(this.r - 2, -7, 12, 5); ctx.fillRect(this.r - 2, 2, 12, 5);
+      ctx.fillStyle = '#ff9900';
+      ctx.fillRect(this.r + 8, -8, 7, 6);  ctx.fillRect(this.r + 8, 2, 7, 6);
+    } else if (weapon === 'smg') {
+      ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#006688'; ctx.fillRect(this.r - 2, -3, 22, 6);
+      ctx.fillStyle = '#00ccff'; ctx.fillRect(this.r + 18, -2, 7, 4);
+    } else if (weapon === 'plasma') {
+      ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 18;
+      ctx.fillStyle = '#550066'; ctx.fillRect(this.r - 2, -7, 10, 14);
+      ctx.fillStyle = '#cc00ff'; ctx.fillRect(this.r + 6, -5, 8, 10);
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#ff88ff';
+      ctx.beginPath(); ctx.arc(this.r + 14, 0, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ── Bullet ────────────────────────────────────────────────────────────────────
+class Bullet {
+  constructor(x, y, dx, dy) {
+    this.x = x; this.y = y; this.dx = dx; this.dy = dy;
+    this.wtype = weapon;
+    const wd  = WDEFS[weapon];
+    this.speed = wd.spd; this.r = wd.r;
+    this.dmg  = wd.dmg + player.dmgBonus;
+    this.col  = wd.col; this.glow = wd.glow;
+    this.active = true;
+  }
+  update() {
+    this.x += this.dx * this.speed; this.y += this.dy * this.speed;
+    if (this.x < -20 || this.x > W + 20 || this.y < -20 || this.y > H + 20) this.active = false;
+  }
+  draw() {
+    ctx.save();
+    if (this.wtype === 'pistol') {
+      ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 14;
+      ctx.fillStyle = '#ffffaa';
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r - 1.5, 0, Math.PI * 2); ctx.fill();
+
+    } else if (this.wtype === 'shotgun') {
+      ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 12;
+      ctx.fillStyle = '#ffaa33';
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+
+    } else if (this.wtype === 'smg') {
+      ctx.strokeStyle = 'rgba(0,255,255,0.35)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(this.x - this.dx * 10, this.y - this.dy * 10);
+      ctx.lineTo(this.x, this.y); ctx.stroke();
+      ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#aaffff';
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+
+    } else if (this.wtype === 'plasma') {
+      const pulse = Math.sin(frame * 0.25) * 3;
+      ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 30;
+      ctx.strokeStyle = 'rgba(200,0,255,0.5)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r + 4 + pulse, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#cc00ff';
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff88ff';
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r * 0.45, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ── Float Text ────────────────────────────────────────────────────────────────
+class FloatText {
+  constructor(x, y, text, col) {
+    this.x = x; this.y = y; this.text = text; this.col = col;
+    this.life = 1; this.dec = 0.018; this.vy = -1.2; this.active = true;
+  }
+  update() { this.y += this.vy; this.life -= this.dec; if (this.life <= 0) this.active = false; }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.life);
+    ctx.shadowColor = this.col; ctx.shadowBlur = 6;
+    ctx.fillStyle = this.col; ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center'; ctx.fillText(this.text, this.x, this.y);
+    ctx.restore();
+  }
+}
+
+// ── Enemy ─────────────────────────────────────────────────────────────────────
+const EDEFS = {
+  basic: { spd:1.4,  hp:20, r:14, col:'#ff2222', glow:'#ff0000', dmg:10, pts:10 },
+  fast:  { spd:2.9,  hp:15, r:11, col:'#ff8800', glow:'#ff5500', dmg:8,  pts:15 },
+  tank:  { spd:0.75, hp:80, r:22, col:'#aa00ff', glow:'#7700cc', dmg:20, pts:30 },
+};
+class Enemy {
+  constructor(x, y, type) {
+    this.x = x; this.y = y;
+    const d = EDEFS[type];
+    this.type = type; this.speed = d.spd; this.hp = d.hp; this.maxHp = d.hp;
+    this.r = d.r; this.col = d.col; this.glow = d.glow;
+    this.dmg = d.dmg; this.pts = d.pts; this.active = true; this.flash = 0;
+  }
+  update() {
+    const dx = player.x - this.x, dy = player.y - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    this.x += (dx / dist) * this.speed; this.y += (dy / dist) * this.speed;
+    if (dist < this.r + player.r + 1) player.takeDamage(this.dmg);
+    if (this.flash > 0) this.flash--;
+  }
+  hit(dmg) {
+    this.hp -= dmg; this.flash = 7;
+    if (this.hp <= 0) { this.active = false; return true; } return false;
+  }
+  draw() {
+    ctx.save(); ctx.translate(this.x, this.y);
+    ctx.shadowColor = this.glow; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.flash > 0 ? '#ffffff' : this.col; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5; ctx.stroke();
+    const ea = Math.atan2(player.y - this.y, player.x - this.x);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(Math.cos(ea)*this.r*0.35, Math.sin(ea)*this.r*0.35, this.r*0.22, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    if (this.hp < this.maxHp) {
+      const bw = this.r*2.6, bh = 4, bx = this.x-bw/2, by = this.y-this.r-10;
+      ctx.fillStyle='#220000'; ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle='#ff3333'; ctx.fillRect(bx,by,bw*(this.hp/this.maxHp),bh);
+    }
+  }
+}
+
+// ── Particle ──────────────────────────────────────────────────────────────────
+class Particle {
+  constructor(x, y, col) {
+    this.x = x; this.y = y; this.col = col;
+    const a = Math.random()*Math.PI*2, s = 1.5+Math.random()*4.5;
+    this.dx = Math.cos(a)*s; this.dy = Math.sin(a)*s;
+    this.sz = 2.5+Math.random()*5; this.life = 1;
+    this.dec = 0.025+Math.random()*0.04; this.active = true;
+  }
+  update() {
+    this.x+=this.dx; this.y+=this.dy; this.dx*=0.92; this.dy*=0.92;
+    this.life-=this.dec; if(this.life<=0) this.active=false;
+  }
+  draw() {
+    ctx.save(); ctx.globalAlpha=Math.max(0,this.life);
+    ctx.shadowColor=this.col; ctx.shadowBlur=6; ctx.fillStyle=this.col;
+    const s=this.sz*Math.max(0,this.life);
+    ctx.fillRect(this.x-s/2,this.y-s/2,s,s); ctx.restore();
+  }
+}
+
+// ── Wave Manager ──────────────────────────────────────────────────────────────
+class WaveManager {
+  constructor() { this.wave=0; this.enemies=[]; this.toSpawn=0; this.spawnT=0; this.spawnInt=50; this.done=false; }
+  startWave() {
+    this.wave++; this.enemies=[]; this.toSpawn=5+(this.wave-1)*3;
+    this.done=false; this.spawnT=this.wave===1?-70:0;
+  }
+  speedMult() { return Math.min(1+(this.wave-1)*0.09,2.2); }
+  spawnOne() {
+    const side=Math.floor(Math.random()*4), pad=32; let x,y;
+    if(side===0){x=Math.random()*W;y=-pad;}
+    else if(side===1){x=W+pad;y=Math.random()*H;}
+    else if(side===2){x=Math.random()*W;y=H+pad;}
+    else{x=-pad;y=Math.random()*H;}
+    const r=Math.random();
+    let type=this.wave>=5&&r<0.22?'tank':this.wave>=3&&r<0.42?'fast':'basic';
+    const e=new Enemy(x,y,type); e.speed*=this.speedMult(); this.enemies.push(e);
+  }
+  update() {
+    if(!this.done){
+      this.spawnT++;
+      if(this.spawnT>=this.spawnInt){this.spawnT=0;this.spawnOne();this.toSpawn--;if(this.toSpawn<=0)this.done=true;}
+    }
+    this.enemies.forEach(e=>{if(e.active)e.update();});
+  }
+  isWaveDone() { return this.done&&this.enemies.every(e=>!e.active); }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function initGame() {
+  state=S.PLAYING; player=new Player(); waveManager=new WaveManager(); waveManager.startWave();
+  bullets=[]; particles=[]; floatTexts=[]; score=0; coins=0; waveCoins=0;
+  weapon='pistol'; ownedWeapons=new Set(['pistol']);
+}
+
+// ── Shop logic ────────────────────────────────────────────────────────────────
+function handleShopClick(mx, my) {
+  for(let i=0;i<WPN_KEYS.length;i++){
+    const key=WPN_KEYS[i], x=cx(i);
+    if(mx>=x&&mx<=x+CW&&my>=WY&&my<=WY+WH){
+      if(ownedWeapons.has(key)){ weapon=key; }
+      else if(coins>=WDEFS[key].cost){ coins-=WDEFS[key].cost; ownedWeapons.add(key); weapon=key; }
+      return;
+    }
+  }
+  for(let i=0;i<PDEFS.length;i++){
+    const p=PDEFS[i], x=cx(i);
+    if(mx>=x&&mx<=x+CW&&my>=PY&&my<=PY+PH){
+      if(coins<p.cost) return;
+      if(p.key==='medkit'){ coins-=p.cost; player.hp=Math.min(player.maxHp,player.hp+40); }
+      else if(p.key==='speed'&&player.speedLevel<3){ coins-=p.cost; player.speedLevel++; player.speed=player.baseSpeed+player.speedLevel*0.8; }
+      else if(p.key==='damage'&&player.dmgBonus<32){ coins-=p.cost; player.dmgBonus+=8; }
+      else if(p.key==='shield'&&!player.hasShield){ coins-=p.cost; player.hasShield=true; }
+      return;
+    }
+  }
+  const bx=W/2-BTN_W/2;
+  if(mx>=bx&&mx<=bx+BTN_W&&my>=BTN_Y&&my<=BTN_Y+BTN_H){
+    waveCoins=0; waveManager.startWave(); state=S.PLAYING;
+  }
+}
+
+// ── Draw helpers ──────────────────────────────────────────────────────────────
+function drawBg() {
+  ctx.fillStyle='#0a0a0f'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(22,22,55,0.9)'; ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
+function drawScanlines() {
+  for(let y=0;y<H;y+=3){ctx.fillStyle='rgba(0,0,0,0.11)';ctx.fillRect(0,y,W,1.5);}
+}
+
+function drawFireBar() {
+  const bx=18,by=H-46,bw=255,bh=24,hp=player.hp/player.maxHp,fw=bw*hp,t=frame*0.09;
+  ctx.fillStyle='#0d0d1a'; ctx.fillRect(bx,by,bw,bh);
+  if(fw>0){
+    ctx.save(); ctx.beginPath(); ctx.rect(bx,by,fw,bh); ctx.clip();
+    const g=ctx.createLinearGradient(bx,by+bh,bx,by);
+    if(hp>0.55){g.addColorStop(0,'#cc5500');g.addColorStop(0.45,'#ff9900');g.addColorStop(1,'#ffee00');}
+    else if(hp>0.28){g.addColorStop(0,'#991100');g.addColorStop(0.45,'#dd3300');g.addColorStop(1,'#ff6600');}
+    else{g.addColorStop(0,'#660000');g.addColorStop(0.45,'#aa0000');g.addColorStop(1,'#dd2200');}
+    ctx.fillStyle=g; ctx.fillRect(bx,by,fw,bh);
+    for(let x=bx;x<bx+fw;x+=7){ctx.globalAlpha=Math.sin(x*0.14+t*2.2)*0.12+0.04;ctx.fillStyle='#fff';ctx.fillRect(x,by,3,bh);}
+    ctx.globalAlpha=1; ctx.restore();
+    const ex=bx+fw;
+    for(let i=0;i<6;i++){
+      const fy=by+(i/5)*bh,fh=6+Math.sin(t*1.7+i*1.3)*4,fw2=3+Math.sin(t*1.1+i*2.1)*2;
+      ctx.save(); ctx.globalAlpha=0.75;
+      const fg=ctx.createRadialGradient(ex,fy,0,ex,fy,fw2+fh);
+      fg.addColorStop(0,'#fff');fg.addColorStop(0.25,'#ffff88');fg.addColorStop(0.6,'#ff8800');fg.addColorStop(1,'rgba(255,50,0,0)');
+      ctx.fillStyle=fg; ctx.beginPath(); ctx.ellipse(ex,fy,fw2,fh,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    }
+  }
+  ctx.strokeStyle=hp>0.28?'rgba(255,180,0,0.45)':'rgba(255,0,0,0.5)'; ctx.lineWidth=1.5; ctx.strokeRect(bx,by,bw,bh);
+  ctx.fillStyle='#fff'; ctx.font='bold 11px monospace'; ctx.textAlign='left'; ctx.shadowColor='transparent';
+  ctx.fillText(`HP  ${player.hp} / ${player.maxHp}`,bx+7,by+15);
+}
+
+function drawHUD() {
+  const wd=WDEFS[weapon];
+  ctx.save();
+  ctx.shadowColor='#00ffff'; ctx.shadowBlur=10; ctx.fillStyle='#00ffff';
+  ctx.font='bold 17px monospace'; ctx.textAlign='left'; ctx.fillText(`SCORE: ${score}`,20,28);
+  ctx.textAlign='right'; ctx.fillText(`WAVE  ${waveManager.wave}`,W-20,28);
+  ctx.shadowColor='#ffdd00'; ctx.shadowBlur=8; ctx.fillStyle='#ffdd00';
+  ctx.font='bold 15px monospace'; ctx.fillText(`¢ ${coins}`,W-20,52);
+  ctx.shadowColor=wd.glow; ctx.shadowBlur=8; ctx.fillStyle=wd.col;
+  ctx.textAlign='left'; ctx.font='bold 13px monospace';
+  ctx.fillText(`[ ${wd.name} ]`,20,52);
+  if(player.hasShield){ctx.fillStyle='#4488ff';ctx.shadowColor='#4488ff';ctx.fillText('◈ SHIELD ACTIVE',20,68);}
+  ctx.restore();
+  drawFireBar();
+}
+
+function drawShopCard(x,y,w,h,name,sub,desc,cost,owned,equipped,col,canAfford,maxed,icon) {
+  const hov=mouseX>=x&&mouseX<=x+w&&mouseY>=y&&mouseY<=y+h;
+  ctx.fillStyle=hov?'rgba(30,30,60,0.95)':'rgba(12,12,28,0.95)'; ctx.fillRect(x,y,w,h);
+  const bc=equipped?col:owned?'#446644':hov&&canAfford?'#666688':'#1e1e44';
+  ctx.strokeStyle=bc; ctx.lineWidth=equipped?2.5:1.5; ctx.strokeRect(x,y,w,h);
+  ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=16;
+  ctx.fillStyle=col; ctx.font='bold 22px monospace'; ctx.textAlign='center';
+  ctx.fillText(icon,x+w/2,y+32); ctx.restore();
+  ctx.fillStyle=equipped?col:owned?'#aaffaa':'#cccccc';
+  ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText(name,x+w/2,y+50);
+  ctx.fillStyle='#667788'; ctx.font='10px monospace';
+  ctx.fillText(sub,x+w/2,y+63); ctx.fillText(desc,x+w/2,y+75);
+  const by2=y+h-22;
+  if(equipped){ctx.fillStyle=col;ctx.font='bold 10px monospace';ctx.fillText('▶ EQUIPPED',x+w/2,by2);}
+  else if(owned){ctx.fillStyle=hov?'#aaffaa':'#66aa66';ctx.font='bold 10px monospace';ctx.fillText('[ EQUIP ]',x+w/2,by2);}
+  else if(maxed){ctx.fillStyle='#445566';ctx.font='bold 10px monospace';ctx.fillText('MAXED',x+w/2,by2);}
+  else if(canAfford){ctx.fillStyle=hov?'#ffff88':'#aaaaaa';ctx.font='bold 10px monospace';ctx.fillText(`BUY  ¢${cost}`,x+w/2,by2);}
+  else{ctx.fillStyle='#553322';ctx.font='bold 10px monospace';ctx.fillText(`¢${cost}  (need more)`,x+w/2,by2);}
+}
+
+function drawShop() {
+  drawBg(); drawScanlines();
+  // Header
+  ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(0,0,W,92);
+  ctx.save(); ctx.shadowColor='#ffff00'; ctx.shadowBlur=20;
+  ctx.fillStyle='#ffee00'; ctx.font='bold 26px monospace'; ctx.textAlign='center';
+  ctx.fillText(`WAVE ${waveManager.wave} CLEARED!`,W/2,34);
+  ctx.shadowBlur=0; ctx.fillStyle='#ffdd00'; ctx.font='14px monospace';
+  ctx.fillText(`+${waveCoins} coins earned this wave`,W/2,58);
+  ctx.fillStyle='#888'; ctx.font='13px monospace';
+  ctx.fillText(`Wallet: ¢ ${coins}`,W/2,76);
+  ctx.restore();
+
+  // Weapons
+  ctx.fillStyle='#445566'; ctx.font='bold 11px monospace'; ctx.textAlign='left';
+  ctx.fillText('── WEAPONS ──────────────────────────────',CX0,WY-10);
+  WPN_KEYS.forEach((key,i)=>{
+    const wd=WDEFS[key];
+    drawShopCard(cx(i),WY,CW,WH,wd.name,wd.sub,wd.desc,wd.cost,
+      ownedWeapons.has(key),weapon===key,wd.col,coins>=wd.cost,false,WPN_ICONS[key]);
+  });
+
+  // Upgrades
+  ctx.fillStyle='#445566'; ctx.font='bold 11px monospace'; ctx.textAlign='left';
+  ctx.fillText('── UPGRADES ─────────────────────────────',CX0,PY-10);
+  PDEFS.forEach((p,i)=>{
+    let sub='', maxed=false;
+    if(p.key==='speed') { sub=`Level ${player.speedLevel}/3`; maxed=player.speedLevel>=3; }
+    else if(p.key==='damage'){ sub=`+${player.dmgBonus} dmg (${Math.floor(player.dmgBonus/8)}/4)`; maxed=player.dmgBonus>=32; }
+    else if(p.key==='shield'){ sub=player.hasShield?'ACTIVE':'Not active'; maxed=player.hasShield; }
+    else if(p.key==='medkit'){ sub=`HP: ${player.hp}/${player.maxHp}`; }
+    drawShopCard(cx(i),PY,CW,PH,p.name,sub,p.desc,p.cost,false,false,p.col,coins>=p.cost,maxed,p.icon);
+  });
+
+  // Continue button
+  const bx=W/2-BTN_W/2;
+  const hov=mouseX>=bx&&mouseX<=bx+BTN_W&&mouseY>=BTN_Y&&mouseY<=BTN_Y+BTN_H;
+  ctx.fillStyle=hov?'#003355':'#001122'; ctx.fillRect(bx,BTN_Y,BTN_W,BTN_H);
+  ctx.strokeStyle=hov?'#00ffff':'#006688'; ctx.lineWidth=hov?2:1.5; ctx.strokeRect(bx,BTN_Y,BTN_W,BTN_H);
+  ctx.save(); ctx.shadowColor='#00ffff'; ctx.shadowBlur=hov?16:6;
+  ctx.fillStyle='#00ffff'; ctx.font='bold 15px monospace'; ctx.textAlign='center';
+  ctx.fillText('[ CONTINUE → ]',W/2,BTN_Y+28); ctx.restore();
+}
+
+function drawMenu() {
+  drawBg(); drawScanlines();
+  const cx2=W/2,cy=H/2;
+  ctx.save(); ctx.fillStyle='#002233'; ctx.font='bold 68px monospace'; ctx.textAlign='center';
+  ctx.fillText('RETRO SWARM',cx2+3,cy-88);
+  ctx.shadowColor='#00ffff'; ctx.shadowBlur=42; ctx.fillStyle='#00ffff';
+  ctx.fillText('RETRO SWARM',cx2,cy-91); ctx.restore();
+  ctx.fillStyle='#9966ff'; ctx.font='17px monospace'; ctx.textAlign='center';
+  ctx.fillText('SURVIVE THE ENDLESS SWARM',cx2,cy-47);
+  blinkT++;
+  if(Math.floor(blinkT/36)%2===0){
+    ctx.save(); ctx.shadowColor='#fff'; ctx.shadowBlur=10; ctx.fillStyle='#fff';
+    ctx.font='bold 22px monospace'; ctx.textAlign='center';
+    ctx.fillText('[ CLICK TO START ]',cx2,cy+12); ctx.restore();
+  }
+  ctx.fillStyle='#446677'; ctx.font='13px monospace'; ctx.textAlign='center';
+  ctx.fillText('ARROW KEYS / WASD : Move',cx2,cy+62);
+  ctx.fillText('MOUSE : Aim    HOLD CLICK : Shoot',cx2,cy+82);
+  ctx.fillStyle='#335544'; ctx.font='12px monospace';
+  ctx.fillText('Kill enemies to earn ¢ coins · Shop for weapons & upgrades between waves!',cx2,cy+108);
+  const legY=cy+148;
+  ctx.fillStyle='#223344'; ctx.font='12px monospace';
+  ctx.fillText('WAVE 1: Basic  ·  WAVE 3: Fast  ·  WAVE 5: Tank',cx2,legY);
+  [{col:'#ff2222',glow:'#ff0000',r:9,x:cx2-160},{col:'#ff8800',glow:'#ff5500',r:7,x:cx2},{col:'#aa00ff',glow:'#7700cc',r:14,x:cx2+155}].forEach(e=>{
+    ctx.save(); ctx.shadowColor=e.glow; ctx.shadowBlur=12; ctx.fillStyle=e.col;
+    ctx.beginPath(); ctx.arc(e.x,legY+28,e.r,0,Math.PI*2); ctx.fill(); ctx.restore();
+  });
+}
+
+function drawGameOver() {
+  drawBg(); drawScanlines();
+  const cx2=W/2,cy=H/2;
+  ctx.save(); ctx.shadowColor='#ff0000'; ctx.shadowBlur=40; ctx.fillStyle='#ff3333';
+  ctx.font='bold 62px monospace'; ctx.textAlign='center'; ctx.fillText('GAME OVER',cx2,cy-80); ctx.restore();
+  ctx.fillStyle='#fff'; ctx.font='22px monospace'; ctx.textAlign='center';
+  ctx.fillText(`FINAL SCORE : ${score}`,cx2,cy-18);
+  ctx.fillText(`WAVE REACHED : ${waveManager.wave}`,cx2,cy+22);
+  ctx.fillStyle='#ffdd00'; ctx.font='16px monospace';
+  ctx.fillText(`TOTAL COINS : ¢ ${coins}`,cx2,cy+54);
+  if(Math.floor(blinkT/36)%2===0){
+    ctx.save(); ctx.shadowColor='#00ffff'; ctx.shadowBlur=10; ctx.fillStyle='#00ffff';
+    ctx.font='bold 20px monospace'; ctx.textAlign='center';
+    ctx.fillText('[ CLICK TO PLAY AGAIN ]',cx2,cy+96); ctx.restore();
+  }
+}
+
+// ── Update & Render ───────────────────────────────────────────────────────────
+function update() {
+  frame++;
+  if(state!==S.PLAYING) return;
+
+  player.update();
+  if(mouseDown){ const bs=player.tryShoot(); bullets.push(...bs); }
+  bullets.forEach(b=>b.update()); bullets=bullets.filter(b=>b.active);
+  waveManager.update();
+
+  for(const b of bullets){
+    if(!b.active) continue;
+    for(const e of waveManager.enemies){
+      if(!e.active) continue;
+      const dx=b.x-e.x,dy=b.y-e.y;
+      if(dx*dx+dy*dy<(b.r+e.r)*(b.r+e.r)){
+        b.active=false;
+        if(e.hit(b.dmg)){
+          score+=e.pts;
+          const c=Math.floor(e.pts/2); coins+=c; waveCoins+=c;
+          for(let i=0;i<9;i++) particles.push(new Particle(e.x,e.y,e.col));
+          floatTexts.push(new FloatText(e.x,e.y-e.r-5,`+${c}¢`,'#ffdd00'));
+        }
+        break;
+      }
+    }
+  }
+
+  particles.forEach(p=>p.update()); particles=particles.filter(p=>p.active);
+  floatTexts.forEach(f=>f.update()); floatTexts=floatTexts.filter(f=>f.active);
+
+  if(waveManager.isWaveDone()){
+    const bonus=20; coins+=bonus; waveCoins+=bonus; score+=50;
+    floatTexts.push(new FloatText(W/2,H/2-40,`WAVE BONUS +${bonus}¢`,'#ffff00'));
+    state=S.SHOP;
+  }
+  if(player.hp<=0){ state=S.GAME_OVER; blinkT=0; }
+}
+
+function render() {
+  if(state===S.MENU)      { drawMenu();     return; }
+  if(state===S.GAME_OVER) { blinkT++; drawGameOver(); return; }
+  if(state===S.SHOP)      { drawShop();     return; }
+  drawBg();
+  particles.forEach(p=>p.draw());
+  waveManager.enemies.forEach(e=>{if(e.active)e.draw();});
+  bullets.forEach(b=>{if(b.active)b.draw();});
+  player.draw();
+  floatTexts.forEach(f=>f.draw());
+  drawHUD();
+}
+
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
