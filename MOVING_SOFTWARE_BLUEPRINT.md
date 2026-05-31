@@ -1680,6 +1680,128 @@ Build in this sequence — each module depends on the one before it:
 
 ---
 
+## Architecture at a Glance
+
+*This section is written for a senior developer reviewing the project for the first time. It covers the full stack, why each piece was chosen, and how the layers connect. No deep dives — just enough to confirm the architecture makes sense before implementation begins.*
+
+### The Stack
+
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| **Frontend** | Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui | Full-stack React framework — handles both the UI and the API layer in one codebase and one deployment. App Router enables React Server Components for fast initial loads. TypeScript enforces type safety across a complex domain model. |
+| **Backend** | Next.js API Routes + Server Actions | Co-located with the frontend, no separate backend service to manage. Server Actions handle form mutations directly. API Routes handle integrations, webhooks, and anything needing explicit HTTP endpoints. |
+| **Database** | PostgreSQL via Supabase | Managed Postgres — battle-tested relational DB for complex relational data (jobs → files → invoices → payments → crew). Supabase adds auth, storage, and realtime on top without adding infrastructure complexity. |
+| **Auth** | Supabase Auth | JWT-based auth with custom claims (company_id, role_id injected at sign-in). Sessions managed server-side. One auth system handles both internal users and customer portal users (different claim scopes). |
+| **File Storage** | Supabase Storage | Same platform as the DB — no separate S3 bucket to manage. Company-scoped buckets with RLS-matched access policies. CDN delivery for documents and generated PDFs. |
+| **PDF Generation** | @react-pdf/renderer (react-pdf) | Server-side PDF generation in a Next.js API route using the same React component model as the UI. Generated PDFs are uploaded to Supabase Storage immediately; clients always download from the stored URL. |
+| **Background Jobs** | Vercel Cron + Supabase pg_cron | Two types of background work require two tools — see breakdown below. |
+| **Realtime** | Supabase Realtime | WebSocket subscriptions for live dispatch board updates (crew clocked in, job status changes). Supabase Realtime publishes Postgres change events directly to subscribed clients — no separate pub/sub infrastructure. |
+| **Email** | SendGrid | Transactional and marketing email. Failover to Mailgun if needed. |
+| **SMS** | Twilio | Automation sequences and job alerts. |
+| **Hosting** | Vercel | Zero-config Next.js deployment, edge network, built-in cron job scheduling. |
+| **Payments** | Stripe | Online invoice payment via the customer portal. ACH and card. |
+
+---
+
+### How the Layers Connect
+
+```
+Browser / Mobile
+      ↓
+Next.js App (Vercel)
+  ├── React Server Components  → fetch data server-side, render HTML
+  ├── Server Actions           → form mutations, no extra API round-trip
+  └── API Routes               → webhooks, integrations, PDF generation
+
+Supabase
+  ├── PostgreSQL               → primary data store
+  │     └── Row Level Security → company isolation enforced at DB layer
+  ├── Auth                     → JWT issuance, session management
+  ├── Storage                  → files, PDFs, photos
+  └── Realtime                 → change subscriptions (dispatch board)
+
+Background Layer
+  ├── Vercel Cron              → time-based scheduled jobs
+  └── Supabase pg_cron         → DB-native recurring jobs
+```
+
+---
+
+### Background Jobs — Which Tool Does What and Why
+
+Two tools handle background work because they solve different problems:
+
+**Vercel Cron** — runs a Next.js serverless function on a schedule. Used when the job needs to call external services (Twilio, SendGrid, Stripe, QuickBooks) or run complex application logic.
+
+| Job | Schedule | Notes |
+|-----|----------|-------|
+| Automation sequence processor | Every 15 min | Checks pending sends, delivers via Twilio/SendGrid |
+| Invoice overdue checker | Daily 8am | Marks invoices overdue, creates billing tasks |
+| Lead follow-up reminder | Daily 8am | Checks lead inactivity, creates sales tasks |
+| Integration syncs | Per integration | HireAHelper every 5 min, QuickBooks every 4 hrs |
+| Webhook delivery | Event-triggered | Posts to customer webhook endpoints on data events |
+
+**Supabase pg_cron** — runs SQL directly inside Postgres. Used when the job is purely data manipulation with no external calls — faster and simpler than a round-trip through the API layer.
+
+| Job | Schedule | Notes |
+|-----|----------|-------|
+| Recurring invoice generation | 1st of month | INSERT invoice rows for active storage accounts |
+| Recycle bin cleanup | Daily midnight | DELETE records past expires_at, pre-alert admin |
+| Capacity projection | Daily 6am | Recalculate 30/60/90-day vault demand metrics |
+
+---
+
+### Multi-Tenancy Pattern
+
+Single database, strict isolation via `company_id` on every table + Supabase Row Level Security.
+
+```sql
+-- Example RLS policy (applied to every table)
+CREATE POLICY "company_isolation" ON leads
+  FOR ALL USING (company_id = (auth.jwt() ->> 'company_id')::uuid);
+```
+
+This means: even if there is a bug in the application layer, the database will not return another company's rows. Company isolation is enforced at the storage engine level, not the application level.
+
+---
+
+### RBAC Pattern
+
+Two-layer enforcement:
+
+1. **Company isolation** — RLS (database level, strict)
+2. **Internal permissions** — Next.js middleware (application level, practical)
+
+```
+Request arrives at API route
+  → Supabase verifies JWT (valid session?)
+  → Middleware checks company_id claim (right company?)
+  → Middleware checks role permissions (allowed module + action?)
+  → Handler runs query (RLS double-checks company scope)
+  → Response
+```
+
+Internal roles (who can see Billing vs. who can see Dispatch) are stored as a JSONB permissions object in the `roles` table and checked in middleware. This is intentionally pragmatic — employees are trusted, so server-side middleware checks are sufficient for V1. RLS is reserved for the security boundary that actually matters: cross-company isolation.
+
+---
+
+### Key Architectural Decisions — Summary for Reviewer
+
+| Decision | Choice | Alternatives considered |
+|----------|--------|------------------------|
+| Framework | Next.js (full-stack) | Separate React frontend + Node/Express API |
+| Database | Supabase (managed Postgres) | PlanetScale, Neon, self-hosted Postgres |
+| Multi-tenancy | Shared DB + company_id + RLS | Separate DB per tenant, schema-per-tenant |
+| Auth | Supabase Auth | NextAuth, Clerk, Auth0 |
+| File storage | Supabase Storage | AWS S3 + CloudFront |
+| PDF | react-pdf (server-side) | Puppeteer headless Chrome, PDFKit |
+| Background jobs | Vercel Cron + pg_cron | Inngest, BullMQ, Railway cron |
+| Realtime | Supabase Realtime | Pusher, Ably, self-hosted WebSocket server |
+
+*The overriding principle: minimize the number of services. Supabase consolidates DB + auth + storage + realtime into one platform and one billing relationship. This reduces operational complexity significantly for a small team.*
+
+---
+
 ## Technical Architecture Decisions
 
 This section answers the "how" questions that must be decided before backend development begins. These decisions are made; they do not need to be revisited unless the product direction changes significantly.
