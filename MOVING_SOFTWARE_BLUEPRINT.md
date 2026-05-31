@@ -730,12 +730,36 @@ Admins define the full fleet type library. Each truck type has:
 Rules that auto-populate crew requirements when a job is created. All can be overridden per job by a dispatcher.
 
 - **Minimum crew per truck** — e.g., every truck must have 1 driver + 1 helper. Set globally, overridable per truck type.
-- **Supervisor requirement** — toggle on/off globally. When on, every job automatically requires 1 supervisor (flagged separately from crew count, billed at supervisor rate). Can be marked "not required" on individual jobs by a dispatcher or coordinator.
+- **Supervisor requirement** — toggle on/off globally. When on, every job automatically requires 1 supervisor billed at supervisor rate. Can be marked "not required" on individual jobs.
+- **Supervisor counts as driver** (default: on) — when enabled, the supervisor fills one of the truck driver slots and does not add to headcount. Total people on the job stays the same; one person is simply billed at the supervisor rate. When disabled, supervisor is an additional person above the calculated crew count. Togglable per estimate and per job.
 - **Supervisor pay rate** — set separately from standard crew rates; applies automatically when supervisor is on a job
 - **Minimum men per job** — regardless of truck, a job always needs at least N men (default: 2)
 - **Hours per working day assumption** — used in estimating (default: 8 hours). Adjustable.
 - **Estimating difficulty divisors** — the ÷N formula per difficulty level (Easy/Moderate/Hard/Very Hard) used to calculate man hours from cubic footage. All four values are editable.
 - **Truck capacity thresholds** — cubic footage ranges that trigger each truck type recommendation in the estimator. Editable.
+
+#### Estimating Rules Engine (Admin-Configurable)
+The estimating tool is built on a set of rules that admins can configure to match their company's operations. All rules have defaults and can be changed without touching code.
+
+**Built-in configurable rules:**
+- Difficulty divisors (Easy/Moderate/Hard/Very Hard) — the ÷N formula per difficulty level
+- Hours per working day assumption
+- Minimum men per job (floor on crew count regardless of formula result)
+- Minimum crew per truck type
+- Supervisor required by default (on/off)
+- Supervisor counts as driver (on/off) — whether supervisor fills a driver slot or is additional headcount
+- Supervisor pay rate
+- Truck pricing model per type (per day or truck+driver hourly)
+- Active truck types (which types appear in the estimator)
+- Truck priority order for auto-allocation
+
+**Future: Custom Rule Builder**
+Admins will be able to create entirely new estimating rules beyond the built-in set. Examples:
+- "Jobs over 2,000 cu ft always require a lead crew member at lead rate"
+- "Any job with stairs automatically adds 10% to man hours"
+- "Commercial jobs always require a minimum of 4 men"
+- "LD jobs always require 2 drivers"
+These rules apply automatically during estimation and are visible on the estimate so salespeople understand why a figure was set.
 
 #### Billing & Rate Defaults
 - Default hourly rate by role (Lead, Driver, Helper, Supervisor, Warehouse) — fallback if no individual or team rate is set
