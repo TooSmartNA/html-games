@@ -720,21 +720,80 @@ The billing module is organized into four tabs:
 ---
 
 ### MODULE 10 — Warehouse & Storage Management
-Full vault and item-level storage tracking.
+Full vault and item-level storage tracking across one or multiple warehouse locations.
 
+#### Multi-Warehouse Management
+- **Multiple warehouse locations** — each with its own name, address, capacity, rows/sections/bays layout
+- Add, edit, or retire warehouse locations from Admin
+- Each vault is assigned to a specific warehouse location
+- Dispatch and customer views show which warehouse a customer's items are in
+- Reporting can be filtered or grouped by warehouse location
+- Companies with one warehouse see the same UI — the warehouse selector simply has one option
+
+#### Vault & Storage
 - Vault inventory — vault number, size, contents, customer
 - Item-level storage (loose storage, rack storage)
-- Vault location tracking (row, section, bay)
-- Full and empty vault tracking
+- Vault location tracking (row, section, bay) within each warehouse
+- Full and empty vault tracking per warehouse
 - Check-in / check-out workflow
-- Warehouse receiving protocol (inbound shipment receiving checklist)
-- Condition documentation at receiving (photos, notes)
 - Long-term storage vs. storage-in-transit (SIT) tracking
 - SIT billing (daily/monthly rate)
 - Delivery order management (pull from storage for delivery)
 - Storage account history retained indefinitely
 - Inventory audit tools
 - **Exceeds CompuMove:** Barcode/QR scanning for vaults and items, warehouse map visual
+
+#### Incoming Shipments — 3rd Party Receiving
+Track all expected inbound deliveries before they arrive. This covers shipments coming from customers, carriers, van lines, or any 3rd party — not just MovePro crew moves.
+
+**Scheduled Incoming Shipments:**
+- Each incoming shipment has:
+  - **Shipment name / reference** (e.g., "Johnson Estate — POD from Allied Van Lines")
+  - **Shipper / origin** (3rd party company or individual)
+  - **Expected arrival:** specific date+time, OR a spread of dates (e.g., "arriving between Jun 12–15")
+  - **Target vault / staging area**
+  - **Warehouse location** (if multi-warehouse)
+  - **Contents description** — brief summary of what's expected
+  - **Special instructions** — fragile, oversized, requires liftgate, temperature-sensitive, etc.
+  - **Associated customer / file reference** (links to the customer it's being stored for)
+  - **Assigned receiving staff** — who is responsible for processing it when it arrives
+
+**Arrival Status:**
+- Expected → Arrived → Received & Processed → Discrepancy Flagged
+- When marked "Arrived," the receiving workflow is triggered automatically
+
+#### Receiving Workflow
+When a shipment arrives (whether a scheduled incoming or an unscheduled drop-off):
+
+1. Receiving staff opens the incoming shipment record (or creates one on the spot for unscheduled)
+2. **Condition check at receiving:**
+   - Photo capture of items/boxes at arrival (required for liability)
+   - Condition noted per item or per box: Good / Minor Damage / Significant Damage / Missing
+   - Any discrepancies between expected and actual contents flagged immediately
+3. **Receiving Report generated** — document containing:
+   - Shipper, arrival date/time, receiving staff name
+   - Items received vs. expected (quantity, condition)
+   - Photos
+   - Any discrepancies or notes
+   - Signature field (driver/delivery person sign at receiving)
+4. Report stored on the customer's file and linked to the vault record
+5. **Automated alerts** sent on receiving completion (configurable per company — see below)
+
+#### Receiving Alerts — Customizable
+Admin configures who gets notified when specific receiving events happen:
+
+| Event | Configurable Alert Recipients |
+|-------|-------------------------------|
+| Shipment arrives as scheduled | Assigned coordinator, customer (optional) |
+| Receiving report completed | Assigned coordinator, billing team |
+| Discrepancy found at receiving | Coordinator + manager, claims team |
+| Items received with damage | Coordinator + manager, claims team immediately |
+| Unscheduled shipment received | Warehouse manager + coordinator |
+| Shipment overdue (past expected date) | Assigned coordinator + manager |
+
+- Alert channels: in-app task, email, SMS (configurable per alert type)
+- Customer notification on arrival is optional — toggle per customer or per shipment
+- Alert rules are managed in Admin & Settings → Automation
 
 ---
 
