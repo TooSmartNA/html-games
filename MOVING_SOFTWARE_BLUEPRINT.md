@@ -155,7 +155,6 @@ Where the money comes in.
 - Invoice generation from completed job
 - Actuals billing (final weight, hours, materials)
 - Partial payments and payment schedules
-- Payment processing (credit card, ACH — PCI compliant)
 - Storage recurring billing (monthly auto-invoicing)
 - Commission calculation per salesperson/job
 - Revenue distribution (for van line agents — split billing)
@@ -327,7 +326,7 @@ Platform configuration.
 | Warehouse | Vault tracking | + Barcode/QR scanning + visual map |
 | Reporting | 250+ preset reports | + Custom report builder + live dashboards |
 | Customer | No portal | Full customer self-service portal |
-| Payments | Basic billing | Stripe integration, payment links, auto-reminders |
+| Payments | Basic billing | Invoice generation, AR tracking, payment status logging |
 | Mobile | Tablet estimating | Full crew mobile app with photos + signatures |
 | API | Closed system | Open REST API + webhooks |
 
@@ -362,7 +361,7 @@ Build in this sequence — each module depends on the one before it:
 | Auth | Supabase Auth |
 | Hosting | Vercel (app) + Supabase (DB + storage) |
 | Mobile | Responsive web — same Next.js app, no separate native app |
-| Payments | Stripe |
+| Payments | Invoice-based only — no payment processing |
 | SMS | Twilio |
 | Email | SendGrid / Mailgun |
 
