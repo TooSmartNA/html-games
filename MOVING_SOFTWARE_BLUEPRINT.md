@@ -341,8 +341,8 @@ Build in this sequence — each module depends on the one before it:
 3. **Estimating** — converts leads to jobs
 4. **Jobs + Rate Engine** — core record + pricing
 5. **Scheduling + Dispatch** — operations
-6. **Billing + Invoicing** — money in
-7. **BOL + Forms** — compliance + field docs
+6. **BOL + Forms** — generated at dispatch, required before job goes live
+7. **Billing + Invoicing** — money in
 8. **Warehouse + Storage** — storage clients
 9. **Reporting** — intelligence layer
 10. **Automation** — efficiency layer
