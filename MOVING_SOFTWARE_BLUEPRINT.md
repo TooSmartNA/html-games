@@ -78,6 +78,47 @@ The core sales tool. Must be fast, accurate, and usable in the field.
 
 ---
 
+### MODULE 2A — Customer Accounts
+Every customer — household or commercial — has a persistent account profile that lives beyond any single job. This is the full 360° view of the customer relationship.
+
+#### Account Types
+- **Household (HHG)** — individual or family; linked to HHG business line
+- **Commercial** — company account with multiple contacts; linked to Commercial business line
+- A customer can have both HHG and Commercial interactions under one account if applicable
+
+#### Customer Profile — What It Shows
+- **Contact info:** name(s), phone, email, address(es), preferred contact method
+- **Account tags:** Recurring, VIP, Corporate, Military, Government, Storage Account, etc. (customizable)
+- **Assigned salesperson and coordinator**
+- **File Reference Numbers** — all files (past and present) linked to this customer
+- **Active Jobs** — jobs currently in progress or dispatched
+- **Upcoming Jobs** — booked jobs with future dates
+- **Job History** — all completed, cancelled, and invoiced jobs with dates and values
+- **Storage Accounts** — any active storage vaults, billing cycle, monthly rate, since date
+- **Open Invoices** — unpaid invoices with amounts and aging
+- **Revenue Summary:**
+  - Total lifetime revenue
+  - Revenue this year
+  - Average job value
+  - Number of moves completed
+- **Communication History** — all calls logged, emails sent, notes added, across all jobs and leads
+- **Documents** — all BOLs, estimates, invoices, and forms across all files in one place
+- **Claims History** — any damage or loss claims ever filed
+
+#### Recurring Customer Features
+- "Book Again" button — pre-fills a new estimate/job using previous move details as a starting point
+- Flag account as **Do Not Contact** or **Preferred** for marketing
+- Notes pinned to the account (not tied to a specific job)
+- Internal account rating (1–5 stars) visible to coordinators and sales
+
+#### Commercial Account Extras
+- Multiple contacts per account (billing contact, operations contact, etc.)
+- Contract pricing attached to account (custom rate that overrides standard tariff)
+- PO number tracking per job
+- Multi-location management (company has offices in multiple cities)
+
+---
+
 ### MODULE 3 — Quotes & Proposals
 - Branded quote documents (PDF + web link)
 - Quote expiration dates
