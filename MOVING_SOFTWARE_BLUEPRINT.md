@@ -374,11 +374,13 @@ Coordinators cannot directly change a job's date once it has been dispatched —
 
 #### Job Resource Requirements
 Each job event has dispatcher-controlled resource fields:
-- **Number of men** required (set by coordinator/dispatcher, used for BOL and dispatch ticket)
+- **Number of men** — originally set by coordinator/estimator based on the job estimate. Dispatcher can **override this up or down** directly on the dispatch board at any time. When the dispatcher's count differs from the original estimate, a visible flag ("Adjusted" tag) appears on the job card so coordinators and managers can see the change at a glance.
 - **Estimated hours** for the job (drives billing estimate and crew schedule)
 - **Truck type** required: 26ft box, 16ft box, cargo van, flatbed, etc.
 - **Number of trucks** required
 - These fields feed directly into BOL and dispatch ticket generation — no separate data entry
+
+**Dispatcher override philosophy:** Dispatchers have the most accurate real-world context — traffic, crew availability, job complexity on the day. They must have full authority to adjust any resource requirement without needing approval. Any adjustment is logged on the job record with timestamp and who changed it.
 
 #### Crew Roster Panel
 - Persistent side panel on the dispatch board showing all crew members
