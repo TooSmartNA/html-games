@@ -303,8 +303,8 @@ Built for the future.
 Platform configuration.
 
 - Company profile (logo, branding, DOT/MC numbers, insurance)
-- User accounts and roles (admin, sales, dispatcher, crew, accounting)
-- Permission levels per role
+- User accounts and role assignments
+- Permission levels per role (see Role-Based Access Control section)
 - Branch/location management (multi-location companies)
 - Notification preferences
 - Rate sheet management
@@ -312,6 +312,41 @@ Platform configuration.
 - Audit log (who changed what and when)
 - Data import tools (migrate from CompuMove or spreadsheets)
 - Backup and export
+
+---
+
+## Role-Based Access Control (RBAC)
+
+Every user is assigned a role. Roles control which modules appear in the sidebar, which actions are available, and what data is visible. Roles are configured per company in Admin & Settings.
+
+### Roles
+
+| Role | Description |
+|------|-------------|
+| **Admin** | Full access to everything — system config, all modules, all data |
+| **Owner / Manager** | Full access to all operational modules + reporting; no system config |
+| **Coordinator** | CRM, Estimating, Quotes, Jobs, Scheduling, BOL & Forms |
+| **Sales / Estimator** | CRM, Estimating, Quotes only |
+| **Local Dispatch** | Jobs (local only), Scheduling, Crew & Mobile, BOL & Forms |
+| **LD Dispatch** | Jobs (long distance), Scheduling, Crew & Mobile, BOL & Forms, Long Distance module |
+| **Billing** | Billing & Invoicing, Rate Sheets, Reporting (financial reports only) |
+| **Warehouse** | Warehouse & Storage module only |
+| **Crew / Driver** | Crew & Mobile view only (daily job list, signatures, photos) |
+| **Customer** | Customer Portal only (external-facing, read + limited actions) |
+
+### Permission Levels Per Module
+
+Each role gets one of three permission levels per module:
+- **Full** — read, write, create, delete
+- **Read-Only** — view only, no edits
+- **Hidden** — module does not appear in navigation
+
+### Key Rules
+- Sidebar navigation is dynamically rendered based on the logged-in user's role
+- Data scoping: Local Dispatch only sees local jobs; LD Dispatch only sees long-distance jobs
+- Admin role is required to create/edit users, roles, and company settings
+- Audit log captures all actions with user + timestamp regardless of role
+- Roles are customizable per company — the above are defaults, not locked-in
 
 ---
 
