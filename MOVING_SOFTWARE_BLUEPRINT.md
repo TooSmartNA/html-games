@@ -418,6 +418,37 @@ Manage all crew members, their roles, team assignments, and availability. Access
 - Availability feeds directly into the dispatch board — unavailable crew don't appear as assignable
 - Dispatch board shows each crew member's current day status in real time
 
+#### Time-Off & Absence Management
+Pre-scheduled and unplanned unavailability tracked per crew member. All absence records block that crew member from dispatch assignment for the affected dates automatically.
+
+**Absence Types:**
+- **PTO (Paid Time Off)** — pre-scheduled; set by coordinator or admin with a date range; crew member appears blocked on dispatch for those dates
+- **Call Off** — unplanned same-day or short-notice absence; logged by dispatcher or coordinator when crew calls out; notes field for context
+- **No Show** — crew did not show and did not call; flagged separately for HR tracking
+- **Injury / Medical Leave** — date range with an optional estimated return date; can be open-ended until cleared
+- **Suspension** — administrative; blocks dispatch until lifted by admin
+- **Other** — general unavailability with custom label and date range
+
+**Restriction Tags (separate from absence — crew may be present but limited):**
+- **Light Duty** — crew member is available but cannot perform heavy lifting or certain tasks; flagged on dispatch board so dispatcher knows
+- **No Driving** — available for labor but cannot drive a truck (e.g., license issue, medical restriction)
+- **Certification Lapsed** — e.g., CDL expired, DOT physical overdue; blocks from being assigned as driver until resolved; alert sent to admin
+- **Probationary** — flag for new or returned crew; no special restrictions but visible to dispatchers
+- Custom tags can be added by admin
+
+**Behavior on Dispatch Board:**
+- Crew members with active absences do not appear in the draggable roster for blocked dates
+- Crew members with restriction tags appear in the roster but with a visible warning icon — dispatcher sees the restriction before assigning
+- Hovering/clicking the warning icon shows what the restriction is
+
+**Absence Log:**
+- Per crew member profile: full history of all absences and restrictions with dates, type, who logged it, and notes
+- Running totals: PTO used, call-offs this year, etc. (for internal reference — not payroll)
+
+**Notifications:**
+- When PTO is approved/logged: crew member notified; any already-scheduled jobs on those dates are flagged for dispatcher review
+- When a crew member calls off: dispatcher and coordinator get an immediate alert; jobs scheduled for that day are flagged as needing replacement
+
 #### Pay Rates & Commissions
 Pay rates are set and managed by Admin only. They are used exclusively for internal job costing and actuals calculation — this is not a payroll processing system.
 
