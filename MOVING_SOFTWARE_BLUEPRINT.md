@@ -26,9 +26,10 @@ The prototype is a visual/interactive frontend built in Next.js with fake data. 
 | Lead Detail | `/crm/[id]` | ✅ Built — Overview (move details, salesperson assignment), Attachments (file list, upload from PC, BOL placeholder), Activity log |
 | Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, pricing model toggle, admin rate config, supervisor-as-driver rule |
 | Jobs List | `/jobs` | ✅ Built — list with type/status badges, links to detail |
-| Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Billing, Activity |
-| Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, **interactive drag-and-drop crew assignment**, truck assignment dropdown, unassign via X, date change modal |
-| Crew & Fleet Management | `/crew` | ✅ Built — Crew Members tab (add/edit/remove, availability toggle, absence log, restriction tags); Fleet tab (add/edit/remove, status change with notes, maintenance surfaced first) |
+| Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Activity; **Billing tab** shows full actuals review (crew timesheets with clock-in/out, flagged overtime, truck, materials, estimated vs actual comparison table, Generate Invoice button) |
+| Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, drag-and-drop crew assignment, truck dropdown, unassign via X, date change modal, **dispatcher men count override with +/− controls and "Adjusted" flag** |
+| Crew & Fleet Management | `/crew` | ✅ Built — Crew Members tab (add/edit/remove, availability toggle, absence log with types/dates, restriction tags); Fleet tab (add/edit/remove, inline status change with note, maintenance surfaced first) |
+| Billing & Invoicing | `/billing` | ✅ Built — 4 tabs: Pending Review (completed jobs awaiting invoice with full actuals breakdown, Generate & Send action), All Invoices (filterable table, expandable rows with partial payment input, Mark Paid), AR (aging buckets + by-customer table), Recurring Billing (storage accounts with pause/resume/cancel) |
 | Customer Accounts | `/customers` | ✅ Built — list with tags, revenue, ratings |
 | Customer Profile | `/customers/[id]` | ✅ Built — stats row, pinned note, Jobs / Storage / Invoices / Communications tabs |
 | BOL & Forms | `/bol` | ✅ Built — document list with type/status badges |
@@ -677,22 +678,34 @@ After a job event is marked complete in the field, the billing team reviews the 
 - Timesheet flagged if hours significantly exceed estimate (dispatcher must review before billing approves)
 - Total actual cost vs. estimated — the difference is the job margin impact
 
-**Approval workflow:**
-1. Job marked complete → billing team notified (auto-task)
-2. Billing opens the job's Billing tab → reviews actuals vs. estimate
-3. If actuals look correct: click **Approve Actuals** → invoice generated using actual amounts
-4. If there's a discrepancy: billing can adjust line items before approving (with a note)
-5. Approved actuals lock the timesheet — no further changes without admin override
-6. Invoice generated with actual line items, sent to customer
+**Invoice generation workflow (not "approval of actuals" — actuals are facts):**
+1. Job marked complete in field → auto-task created for billing team
+2. Job appears in billing module's **Pending Review** queue
+3. Billing opens the entry → reviews actuals (timesheets, truck, materials) vs. original estimate
+4. If actuals have flagged overtime or unexpected costs: note the reason, then proceed
+5. Click **Generate Invoice** → invoice created using actual amounts, ready to send
+6. Click **Send Invoice** → sent to customer; job drops from Pending queue and appears in All Invoices
+7. Timesheets lock after invoice is sent — no changes without admin override
+
+**Key distinction:** The billing team is reviewing the actuals to *understand* the job cost before sending. They are not "approving" the actuals — those are what they are. The action is approving the invoice to go out.
+
+#### Billing Module — Four Views
+The billing module is organized into four tabs:
+
+- **Pending Review** — completed jobs awaiting invoice. Each shows customer, job type, estimated total, actual total, and variance at a glance. Click to expand full actuals: crew timesheet per person (clock-in, clock-out, hours, rate, cost), truck cost, materials used, summary comparison. Overtime rows flagged amber. "Generate & Send Invoice" button per job; job drops from list once sent.
+- **All Invoices** — full invoice ledger. Filterable by status (Draft/Sent/Partial/Overdue/Paid), business line (HHG/Commercial), billing type (One-time/Recurring/Milestone), and search. Each row expandable: shows file/job reference, salesperson, partial payment input, balance. Mark Paid button updates in real time.
+- **Accounts Receivable** — aging bucket summary cards (Current / 1–30 / 31–60 / 61–90 days) with totals; outstanding AR grouped by customer sorted by balance showing oldest invoice and worst aging bucket.
+- **Recurring Billing** — active storage billing accounts with monthly rate, next billing date, and actions: Adjust Rate, Pause, Resume, Cancel.
+
+#### Other Billing Features
 - Recurring storage invoices auto-generated on billing cycle date; admin can pause, adjust rate, or cancel
 - Partial payments and payment schedules tracked per invoice
 - Commission calculation per salesperson/event
 - Revenue distribution (for van line agents — split billing)
-- Accounts receivable tracking — filterable by file, event type, business line, aging bucket
-- Overdue invoice alerts and follow-up reminders
+- Overdue invoice alerts and follow-up reminders (auto-task to billing team)
 - Invoice PDF with company branding
 - QuickBooks integration (export or sync)
-- **Exceeds CompuMove:** Automatic recurring billing engine, full AR view across all event types per file
+- **Exceeds CompuMove:** Pending review queue with full actuals breakdown before invoicing; automatic recurring billing engine; full AR aging view
 
 ---
 
@@ -1184,4 +1197,4 @@ Build in this sequence — each module depends on the one before it:
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-30 (second pass) — prototype and blueprint fully synced*
+*Last audited: 2026-05-30 (third pass) — prototype and blueprint fully synced*
