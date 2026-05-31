@@ -661,6 +661,29 @@ Where the money comes in. Billing is event-level — each job event under a file
 - Invoice generation per job event (not per file — each event bills separately)
 - File-level billing summary — see all invoices across all events for one customer
 - Actuals billing (final weight, hours, materials vs. estimated)
+
+#### Actuals Review & Invoice Approval Flow
+After a job event is marked complete in the field, the billing team reviews the actuals before generating the final invoice. This prevents invoicing based on estimates when real numbers are available.
+
+**What feeds the actuals:**
+- **Labor:** crew timesheet clock-in/out per person × their pay rate. System calculates total hours per person and total labor cost. If any crew member clocked more hours than the job estimate, those lines are flagged.
+- **Trucks:** hours the truck was on the job (derived from crew clock-in/out window) × truck cost rate
+- **Materials:** packing supplies logged by crew during the job (boxes used, wardrobe boxes, etc.)
+
+**Actuals display on the Job Billing tab:**
+- Side-by-side comparison: Estimated vs. Actual per line item (labor, truck, materials)
+- Variance column: over/under vs. estimate, colored red if over, green if under
+- Each crew member's timesheet shown individually: name, clock-in, clock-out, hours, rate, total
+- Timesheet flagged if hours significantly exceed estimate (dispatcher must review before billing approves)
+- Total actual cost vs. estimated — the difference is the job margin impact
+
+**Approval workflow:**
+1. Job marked complete → billing team notified (auto-task)
+2. Billing opens the job's Billing tab → reviews actuals vs. estimate
+3. If actuals look correct: click **Approve Actuals** → invoice generated using actual amounts
+4. If there's a discrepancy: billing can adjust line items before approving (with a note)
+5. Approved actuals lock the timesheet — no further changes without admin override
+6. Invoice generated with actual line items, sent to customer
 - Recurring storage invoices auto-generated on billing cycle date; admin can pause, adjust rate, or cancel
 - Partial payments and payment schedules tracked per invoice
 - Commission calculation per salesperson/event
