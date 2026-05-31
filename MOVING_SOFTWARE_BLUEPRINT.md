@@ -24,19 +24,31 @@ The prototype is a visual/interactive frontend built in Next.js with fake data. 
 | Dashboard | `/` | ✅ Built — KPI cards (all linked), recent jobs/leads, alerts |
 | CRM Pipeline | `/crm` | ✅ Built — pipeline kanban + task-driven view with urgency system; both cards link to lead detail |
 | Lead Detail | `/crm/[id]` | ✅ Built — Overview (move details, salesperson assignment), Attachments (file list, upload from PC, BOL placeholder), Activity log |
-| Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, pricing model toggle, admin rate config, supervisor-as-driver rule |
+| Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, pricing model toggle, admin rate config, supervisor-as-driver rule; **Generate Quote button** saves estimate to quotes module |
+| Quotes & Proposals | `/quotes` | ✅ Built — quote lifecycle (Draft → Sent → Viewed → Accepted/Declined/Expired), expandable line items table, send/duplicate/convert-to-job actions, Templates tab; receives pre-filled drafts from Estimator via Generate Quote |
 | Jobs List | `/jobs` | ✅ Built — list with type/status badges, links to detail |
 | Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Activity; **Billing tab** shows full actuals review (crew timesheets with clock-in/out, flagged overtime, truck, materials, estimated vs actual comparison table, Generate Invoice button) |
 | Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, drag-and-drop crew assignment, truck dropdown, unassign via X, date change modal, **dispatcher men count override with +/− controls and "Adjusted" flag** |
 | Crew & Fleet Management | `/crew` | ✅ Built — Crew Members tab (add/edit/remove, availability toggle, absence log with types/dates, restriction tags); Fleet tab (add/edit/remove, inline status change with note, maintenance surfaced first) |
 | Billing & Invoicing | `/billing` | ✅ Built — 4 tabs: Pending Review (**3 billing paths**: Bill Estimate / Bill Actual & Send / Edit Invoice with editable line items), All Invoices (filterable, expandable rows, Mark Paid), AR (aging buckets + by-customer), Recurring Billing |
+| Claims | `/claims` | ✅ Built — coverage-aware flows (Released Value auto-calculates settlement; FVP requires manual assessment), per-item settlement math, Coverage Options tab with all 4 types + custom tier support |
+| Rate Sheets & Tariffs | `/rates` | ✅ Built — local crew rates (editable inline by crew size), truck rates (per day + hourly), CZAR-LITE interstate grid (click any cell to edit), fuel surcharge with rate history and auto-apply toggle, custom contract pricing per account |
+| Long Distance | `/longdistance` | ✅ Built — shipment tracker with status filter and expandable detail (billing, agents, action buttons), agent network with contact cards and ratings, interactive CZAR-LITE pricing calculator with accessorial charge reference |
 | Customer Accounts | `/customers` | ✅ Built — list with tags, revenue, ratings |
 | Customer Profile | `/customers/[id]` | ✅ Built — stats row, pinned note, Jobs / Storage / Invoices / Communications tabs |
+| Warehouse & Storage | `/warehouse` | ✅ Built — 5 tabs: Incoming Shipments (spread date support, receiving workflow, overdue alerts), Vault Directory (full item inventory, capacity fill bar, per-vault actions), Delivery Orders, Capacity & Metrics (vault states, sq ft, SIT bays, 30/60/90 day demand projection), Manage Warehouses |
+| Reporting | `/reporting` | ✅ Built — Explorer tab (cascading filters, live stat cards), Sales, Operations, Financial, Custom Report Builder tabs |
+| Tasks | `/tasks` | ✅ Built — Open/Completed tabs, urgency grouping (Overdue/Today/Upcoming), inline edit panel (priority, assignee, due date, notes, undo complete), Auto Rules tab |
+| Automation | `/automation` | ✅ Built — sequence list with status, expandable step timeline, pause/resume toggle, edit step inline, add step, new sequence form |
+| Customer Portal | `/portal` | ✅ Built — no sidebar (customer-facing), active move tracker, job progress bar, document/storage/billing/support tabs |
+| Integrations & API | `/integrations` | ✅ Built — Connected tab (status + reconnect), Browse All by category, Lead Sources (field mapping), API & Webhooks (key gen/revoke with scopes, webhook endpoints with event subscriptions), Activity Log |
+| Admin & Settings | `/admin` | ✅ Built — Company, Theme & Branding, Users & Roles (permission matrix), Truck Types, Pipelines, Task Rules tabs |
+| Recycle Bin | `/admin/recycle-bin` | ✅ Built — role-based visibility, Restore (animated), permanent delete (requires typing DELETE), linked record warnings, expiry countdown |
 | BOL & Forms | `/bol` | ✅ Built — document list with type/status badges |
 | BOL Viewer | `/bol/[id]` | ✅ Built — full DOT-formatted document with print/download/send |
+| Role Preview Toggle | TopNav (global) | ✅ Built — dropdown in every page's TopNav; switches sidebar to show only modules the selected role can access; amber banner shows active preview role with Exit button |
 
-**Deferred for later in prototype:**
-- Role preview toggle — switch between role views (Dispatcher, Coordinator, etc.) to see sidebar and data scope change
+**All planned prototype screens are now complete. No deferred items remaining.**
 
 **Workflow:** Brain dump → blueprint first → prototype built → prototype reveals new needs → back to blueprint
 
@@ -206,6 +218,13 @@ The core sales tool. Must be fast, accurate, and usable in the field.
 - Estimate PDF generation with company branding
 - Digital signature on estimates (legally binding under ESIGN Act)
 - Automatic conversion from estimate → quote → job
+#### Generate Quote — Direct Estimator Output
+- **Generate Quote button** in the estimator header — enabled as soon as any inventory is added
+- One click saves the full estimate breakdown (labor, supervisor, truck allocation, fuel surcharge %) and navigates to the Quotes module
+- The Quotes module receives the data and automatically creates a Draft quote pre-filled with all line items — no re-entry required
+- The draft is opened and expanded for immediate review; salesperson adjusts notes, expiry date, and any custom add-ons, then sends
+- This is the primary path from estimate → quote → job booking
+
 - **Exceeds CompuMove:** Real-time cube-based calculation, configurable rules engine, admin rate management
 
 #### Estimate Ownership & Visibility
@@ -280,13 +299,56 @@ The customer profile has a dedicated Storage tab. If the customer has active sto
 ---
 
 ### MODULE 3 — Quotes & Proposals
-- Branded quote documents (PDF + web link)
-- Quote expiration dates
-- Accepted / declined / expired tracking
-- Optional add-ons and upsells (packing services, storage, valuation coverage)
-- Valuation / insurance options built into quote
+Formal quote documents sent to customers after the estimate is built. The Estimator feeds directly into the Quotes module — one click creates a draft quote pre-filled with all line items.
+
+#### Quote Lifecycle
+```
+Draft → Sent → Viewed → Accepted → Job Created
+                      ↘ Declined
+                      ↘ Expired (auto after expiry date)
+```
+- Each status is tracked with timestamps (sent date, viewed date, response date)
+- Expired quotes can be duplicated and resent with a new expiry date
+- Accepted quotes link to the created job file
+
+#### Estimator → Quote Tie-In
+- **Generate Quote button** on the Estimator — active once any inventory is added (disabled when empty)
+- Clicking it saves the full estimate breakdown (labor, supervisor, truck, fuel surcharge) to a handoff payload and navigates to `/quotes`
+- The Quotes page detects the pending estimate on load, creates a pre-filled Draft quote, and expands it for immediate review
+- The quote line items match the estimator output exactly: crew labor, supervisor, truck type(s), fuel surcharge applied as a percentage line
+- Salesperson reviews the draft, adjusts notes, and sends — no re-entry of figures needed
+
+#### Quote Line Items
+- Labor (crew size × hours × rate)
+- Supervisor (hours × supervisor rate)
+- Truck(s) (per day or hourly per type)
+- Fuel surcharge (% applied to labor + truck subtotal)
+- Custom lines (add-ons, packing services, valuation premiums, etc.)
+- Live total updates as lines are edited
+
+#### Quote Actions
+- **Send** — marks as Sent, logs timestamp, customer receives quote via email
+- **Resend** — re-sends with updated timestamp for viewed tracking
+- **Mark Accepted** — marks quote Accepted, triggers Convert to Job action
+- **Convert to Job** — creates job file from the accepted quote
+- **Duplicate** — creates a new Draft copy (useful for expiring/declined quotes or similar jobs)
+- **Edit** — edit any line item, notes, or expiry date while in Draft
+- **Delete** — soft delete (undo toast → Recycle Bin)
+
+#### Templates
+- Pre-configured quote structures for common job types (Standard Local Move, Large Home, Long Distance Standard, Commercial Office Move, Corporate Relocation)
+- Each template pre-fills the line items; salesperson adjusts quantities and rates for the specific job
+- Templates are admin-configurable — add, edit, remove
+- Usage count tracked per template to surface the most-used ones
+
+#### Other Features
+- Quote expiration dates — configurable default (e.g., 14 days from sent date); admin-editable per quote
+- Optional add-ons and upsells built into quote (packing services, storage, valuation coverage)
 - Customer e-signature on quote acceptance
+- Quote PDF generation with company branding
+- Quote viewed tracking — system logs when the customer opens the quote link
 - Automatic job creation on acceptance
+- Pipeline value tracking — total value of Sent + Viewed quotes as a pipeline metric
 
 ---
 
@@ -634,17 +696,36 @@ DOT/FMCSA compliant document generation. All documents are auto-populated from t
 ---
 
 ### MODULE 8 — Rate Sheets & Tariffs
-The pricing engine. Drives estimates, billing, and settlement.
+The pricing engine. Drives estimates, billing, and settlement. All rates are admin-editable defaults — changes apply immediately to new estimates. Existing saved estimates are not affected.
 
-- Local tariffs (hourly rates by crew size, truck size, market)
-- Intrastate tariffs
-- Interstate tariffs (CZAR-LITE / household goods weight-based)
+#### Local Rates Tab
+- **Crew hourly rates by crew size** — 2-person, 3-person, 4-person, 5-person, 6-person; each rate editable inline (click pencil → type → Enter to save)
+- **Minimum hours** — configurable floor; affects minimum charge calculation
+- **Minimum charge** — derived from minimum hours × base rate; displayed on rate sheet
+- **Truck rates** — per day rate and hourly rate per truck type (Cargo Van, Sprinter Van, 16ft, 26ft, 53ft); each editable inline
+- Changes here sync with the Estimating module's default rates
+
+#### Interstate / Long Distance Tab
+- **CZAR-LITE style weight × distance grid** — 7 weight bands (Under 2,000 lbs through 16,001+ lbs) × 5 distance bands (< 500 mi through 2,001+ mi)
+- Each cell shows a rate per 100 lbs (per cwt); click any cell to edit inline
+- Rates feed the Long Distance Pricing Calculator
+- **Additional LD accessorial charges** table (Long Carry, Elevator, Piano/Organ, Shuttle Service, Packing, SIT, etc.) — reference display, editable in Admin
+
+#### Fuel Surcharge Tab
+- Current fuel surcharge percentage — prominently displayed
+- **Update Rate** button — inline edit with Save/Cancel
+- **Auto-apply toggle** — when on, surcharge is automatically added to all invoices; when off, must be applied manually per invoice
+- **Rate history log** — every rate change recorded with date, new rate, and delta (+/−) vs. prior rate; color-coded trend indicator
+
+#### Custom Contracts Tab
+- Per-account pricing that overrides standard rates (e.g., flat hourly for a corporate client, custom sq ft rate for a commercial storage account)
+- Each contract shows: account name, contract type, rate, notes, expiry date
+- Add / Edit / Remove contracts
+- Contract rates are linked to the customer's account — automatically applied when invoicing that customer
+
+#### Future
 - 400NG tariff integration (van line interstate)
 - GSA-500A government/military tariff
-- Custom contract pricing (commercial accounts, corporate relocation)
-- Fuel surcharge management
-- Accessorial charges (long carry, stairs, elevator, shuttle, storage-in-transit)
-- Minimum charges
 - Seasonal rate adjustments
 - Rate sheet versioning (keep history when rates change)
 
@@ -949,13 +1030,42 @@ Separate workflows for commercial clients.
 ---
 
 ### MODULE 12 — Long Distance & Interstate
+Dedicated module for interstate and long-haul shipments. Covers the full lifecycle from booking through delivery, with agent coordination and weight-based pricing tools.
+
+#### Shipments Tab
+- All LD shipments listed with: customer, file reference, origin → destination, weight, status, estimated delivery, total charge
+- **Status filter** — filter by any status stage (Booking Confirmed, Pickup Scheduled, Loaded, In Transit, At Destination Warehouse, Out for Delivery, Delivered, On Hold)
+- **Status icons** — truck for In Transit, checkmark for Delivered, alert for On Hold, clock for all pending stages
+- **Expandable detail** per shipment:
+  - Left panel: pickup date, first/last available, estimated delivery, weight, estimated cu ft, driver, truck
+  - Right panel: base rate, fuel surcharge, total charge (itemized); origin and destination agents; notes
+  - Action buttons: Update Status, View File, Contact Agent, View BOL
+- **KPI cards** at top: Active Shipments, In Transit Now, Total Weight (lbs), Revenue (all shipments)
+
+#### Shipment Status Lifecycle
+```
+Booking Confirmed → Pickup Scheduled → Loaded → In Transit
+→ At Destination Warehouse → Out for Delivery → Delivered
+(or → On Hold at any stage)
+```
+
+#### Agent Network Tab
+- Directory of all origin, destination, and transit agents
+- Per agent: company name, primary contact, phone, email, city/state, type (Origin / Destination / Both), active shipment count, star rating
+- Contact and Edit actions per agent
+- Add Agent button
+
+#### Pricing Calculator Tab
+- Interactive weight + distance → cost calculator
+- Inputs: shipment weight (lbs), distance (miles), fuel surcharge (%)
+- Looks up the correct CZAR-LITE rate band from Rate Sheets module
+- Output: base rate, fuel surcharge amount, total estimate; with rate band and per-cwt rate displayed
+- **Standard Accessorial Charges** reference table alongside the calculator (Long Carry, Elevator, Piano, Shuttle, SIT, Full Value Protection, etc.)
+
+#### Future
 - Weight ticket management (origin and destination weighmaster tickets)
 - Actual weight billing vs. estimated weight
-- Linehaul rate calculation
-- Driver settlement / carrier pay
-- Delivery spread date tracking (first/last available delivery date)
-- Shipment status tracking (en route, at destination warehouse, out for delivery)
-- Agent network management (origin/destination agents)
+- Driver settlement / carrier pay (LD driver commission per mile)
 - Van line integration hooks (Allied, Mayflower, UniGroup, etc.)
 
 ---
@@ -1082,29 +1192,57 @@ Self-service for the customer.
 ---
 
 ### MODULE 16 — Integrations & API
-Built for the future.
+Connects MovePro to external tools. Organized into five areas: connected integrations, integration directory, lead source management, API key + webhook management, and activity logging.
 
-**Native Integrations (Phase 1):**
-- QuickBooks Online / Desktop
-- Google Calendar
-- Google Maps (routing + distance)
-- Stripe (payments)
-- Twilio (SMS automation)
-- SendGrid / Mailgun (email)
+#### Connected Tab
+- All currently connected integrations displayed with status badges (Connected / Error / Not Connected)
+- Expandable per integration: last sync time, connected since date, Sync Now, Configure, and Disconnect actions
+- **Error state**: amber banner with error message and Reconnect button (e.g., OAuth token expired)
+- **Header stat cards**: Connected count, Needs Attention count, Active API Keys, Active Webhooks
 
-**Lead Source Integrations:**
-- HireAHelper
-- MovingHelp
-- Moving.com
-- Updater
-- Custom webhook for any lead source
+#### Browse All Tab
+- Full integration catalog organized by category:
+  - **Accounting**: QuickBooks Online, QuickBooks Desktop
+  - **Communication**: Twilio, SendGrid, Mailgun
+  - **Maps & Routing**: Google Maps
+  - **Calendar**: Google Calendar
+  - **Payment**: Stripe, Square
+  - **Van Lines**: Allied Van Lines, Mayflower, UniGroup
+  - **Automation**: Zapier, Make (Integromat)
+- Connect / Reconnect / Disconnect actions per integration
 
-**Future / API Layer:**
-- Public REST API for customer-facing integrations
-- Webhook support (push events to external systems)
-- van line system integrations
-- DOT/FMCSA compliance data feeds
-- Zapier / Make.com connector
+#### Lead Sources Tab
+- Dedicated management for lead source integrations (separate from native integrations because they require field mapping)
+- **Active sources**: HireAHelper, MovingHelp — show today's lead count, monthly lead count, last sync time
+- **Available sources**: Moving.com, Thumbtack, Angi — enable + configure
+- Per source: Enable/Disable toggle, API key management, **field mapping** (source field → MovePro field, e.g., `customer_name` → Contact Name, `move_date` → Move Date)
+- Leads from connected sources are automatically imported into CRM & Leads with mapping applied
+- Add Source button for custom lead sources
+
+#### API & Webhooks Tab
+**API Keys:**
+- Generate new API keys with a name and scope selection (jobs:read, jobs:write, customers:read, invoices:read, portal:read, portal:write, etc.)
+- View / hide key (eye toggle), copy to clipboard, revoke
+- Each key shows: created date, last used, active scopes
+- Revoked keys remain in list with visual distinction
+
+**Webhook Endpoints:**
+- Add endpoints with URL + event subscriptions
+- **Supported events**: job.created, job.updated, job.completed, job.cancelled, lead.created, lead.booked, invoice.sent, invoice.paid, customer.created, crew.assigned, estimate.sent, etc.
+- Per endpoint: status (Active / Failing / Paused), success rate %, last triggered
+- Expand: Send Test, View Logs, Pause/Resume
+- Delete endpoint
+
+**API Reference panel**: base URL, links to Docs, Changelog, Postman Collection, OpenAPI Spec
+
+#### Activity Log Tab
+- Live feed of all integration events: integration name, event type, status (success/error/info), timestamp, detail line
+- Covers: invoice syncs, SMS deliveries, lead imports, payment webhooks, distance calculations, OAuth failures
+
+#### Error Handling
+- Any integration in error state surfaces in both the Connected tab and a banner at the top of the page
+- Error message explains the cause (e.g., "OAuth token expired — reconnect required")
+- One-click Reconnect re-initiates the OAuth flow or API handshake
 
 ---
 
@@ -1454,18 +1592,22 @@ Build in this sequence — each module depends on the one before it:
 1. **Auth + Admin** (user accounts, roles, company setup, fleet config, staffing rules) — foundation
 2. **CRM + Leads + Customer Accounts** — first touchpoint; customer accounts link to all future modules
 3. **Estimating** — converts leads to jobs; requires rate config from Admin
-4. **Jobs + Rate Engine** — core record + pricing; requires customer accounts
-5. **Scheduling + Dispatch** — operations; requires jobs and crew management
-6. **BOL + Forms** — generated at dispatch; requires dispatch details
-7. **Billing + Invoicing** — money in; requires completed jobs
-8. **Warehouse + Storage** — storage clients; requires jobs for Storage In events
-9. **Reporting** — intelligence layer; requires data from all above
-10. **Internal Task System** — threads through all roles and modules
-11. **Automation** — customer-facing email/SMS; requires jobs and leads
-12. **Customer Portal** — customer-facing self-service
-13. **Integrations + API** — ecosystem connections
+4. **Quotes & Proposals** — output of the Estimator; requires Estimating
+5. **Rate Sheets & Tariffs** — pricing engine; feeds Estimating and Billing
+6. **Jobs + Rate Engine** — core record + pricing; requires customer accounts
+7. **Scheduling + Dispatch** — operations; requires jobs and crew management
+8. **BOL + Forms** — generated at dispatch; requires dispatch details
+9. **Billing + Invoicing** — money in; requires completed jobs
+10. **Claims Management** — requires jobs and valuation coverage data
+11. **Warehouse + Storage** — storage clients; requires jobs for Storage In events
+12. **Long Distance & Interstate** — requires Rate Sheets and Jobs
+13. **Reporting** — intelligence layer; requires data from all above
+14. **Internal Task System** — threads through all roles and modules
+15. **Automation** — customer-facing email/SMS; requires jobs and leads
+16. **Customer Portal** — customer-facing self-service
+17. **Integrations + API** — ecosystem connections
 
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-30 (third pass) — prototype and blueprint fully synced*
+*Last audited: 2026-05-31 (fourth pass) — synced after Rate Sheets, Long Distance, Quotes, Integrations, and Role Preview Toggle were built; all prototype screens now complete*
