@@ -144,55 +144,116 @@ Each job event has its own:
 ---
 
 ### MODULE 5 — Scheduling & Dispatch
-The operations calendar. Dispatchers live here.
+The operations hub. Dispatchers and coordinators live here. Designed for speed, accuracy, and flexibility.
 
+#### Dispatch Board
 - Monthly, weekly, and daily calendar views
-- Job assignment to crews and trucks
-- Crew member availability management
-- Truck/equipment availability management
-- Conflict detection (double-booking prevention)
-- Daily dispatch sheet generation
-- Worker schedule view (what each crew member is doing each day)
-- Route optimization (for local multi-stop days)
-- Real-time status updates from field
-- Notifications: text, email, push to crew
-- Google Calendar integration for crew
-- Dispatcher notes per job/day
-- **Exceeds CompuMove:** Drag-and-drop dispatch board, capacity heatmap by day/week
+- Each job event appears as a card on the board showing: customer, address, time window, men required, truck type, current assignment status
+- **Drag-and-drop** crew members from the crew roster panel onto job cards to assign them
+- **Dropdown assignment** on each job card as an alternative to drag-and-drop
+- Color-coded by job type (Local, LD, Commercial), status, and business line (HHG/Commercial)
+- Conflict detection — warns if a crew member or truck is double-booked
+- Capacity heatmap by day showing how many men and trucks are committed vs. available
+- Dispatcher notes per job per day
+
+#### Job Resource Requirements
+Each job event has dispatcher-controlled resource fields:
+- **Number of men** required (set by coordinator/dispatcher, used for BOL and dispatch ticket)
+- **Estimated hours** for the job (drives billing estimate and crew schedule)
+- **Truck type** required: 26ft box, 16ft box, cargo van, flatbed, etc.
+- **Number of trucks** required
+- These fields feed directly into BOL and dispatch ticket generation — no separate data entry
+
+#### Crew Roster Panel
+- Persistent side panel on the dispatch board showing all crew members
+- Each crew member card shows: name, role (driver, helper, lead), today's assignment status (available, assigned, off, unavailable)
+- Drag a crew member card directly onto a job to assign them
+- Filter roster by: available today, role type, HHG vs. commercial certified
+- Click a crew member to see their full week schedule
+
+#### Truck & Equipment Board
+- Separate view for truck availability across the fleet
+- Each truck shows: type, size, current assignment, next available slot
+- Assign trucks to jobs by drag-and-drop or dropdown, same as crew
+
+#### Document Generation from Dispatch
+- Once a job is fully assigned (crew + truck + hours confirmed), dispatcher can generate:
+  - **Dispatch Ticket** — internal document: job details, crew names, truck, time window, origin/destination, special instructions
+  - **Bill of Lading** — customer-facing: auto-populated from job record + dispatch details (crew count, truck, estimated weight, inventory summary)
+- Both documents reflect exactly what was entered in dispatch — no re-keying
+
+#### Other Dispatch Features
+- Daily dispatch sheet — printable/exportable summary of all jobs for the day
+- Worker schedule view — per crew member, what they're doing each day of the week
+- Route optimization suggestions for local multi-stop days
+- Real-time field status updates visible on the board (crew clocked in, en route, at origin, loading, at destination, complete)
+- Push notifications to crew when job details change or new assignments are made
+- Google Calendar integration for crew members
+- **Exceeds CompuMove:** Full drag-and-drop board, resource requirement fields drive document generation automatically
 
 ---
 
 ### MODULE 6 — Crew & Mobile Operations
-What the crew sees and uses in the field.
+A separate, minimal-access portal for crew members. Accessed via the same web app on a phone or tablet — no separate native app required. Crew members log in and see only what they need for their workday.
 
-- Crew mobile app (phone/tablet)
-- Daily job list for each crew member
-- Turn-by-turn directions to job
-- Digital inventory checklist at pickup
-- Photo capture at pickup and delivery (condition documentation)
-- Customer signature at pickup (BOL acknowledgment)
-- Customer signature at delivery (completion)
-- Time tracking — clock in/out per job
-- Actual hours logged vs. estimated
-- Packing material usage logging
-- Exception reporting (damages, access issues, delays)
+#### Crew Portal — What Crew Members See
+Crew access is intentionally limited:
+- **Today's Jobs** — only the job events they are assigned to for the current day, in time-order
+- Each job card shows: customer name, address (tap to open maps), time window, crew lead, truck, special instructions
+- **Live job status** — if a coordinator or dispatcher updates a job (time change, address change, cancellation), the crew member sees it immediately with a notification
+- No access to other jobs, other crew members' schedules, financial data, or any management features
+
+#### Clock-In / Timesheet System
+- **Clock In** button appears when crew member is within the start window of a scheduled job
+- Clock in is per-job — tracks start and end time for each individual job event
+- Crew can clock out at completion; lead can mark job as complete which triggers all crew clocking out
+- Running timer visible while clocked in — crew can see their live hours
+- End-of-day timesheet summary — total hours worked, jobs completed
+- Timesheets flow to the back office automatically — no paper submission needed
+- Dispatcher/coordinator can see live clock-in status on the dispatch board in real time
+
+#### GPS Tracking (Phase 2)
+- Optional GPS check-in at clock-in to verify crew is on-site (geofence against job address)
+- Live crew location visible to dispatcher during job — useful for ETAs and routing
+- Automatic travel time logging between jobs
+- Designed as an opt-in feature per company; crew is notified when tracking is active
+
+#### Field Actions (on assigned jobs)
+- Photo capture at pickup — condition documentation before loading
+- Photo capture at delivery — condition documentation after unloading
+- Customer signature capture at pickup (BOL acknowledgment)
+- Customer signature capture at delivery (job completion)
+- Exception reporting — crew can flag damages, access issues, or delays with photo + note
+- Packing material usage log — record actual boxes/materials used
+
+#### Crew Notifications
+- Push notification when assigned to a new job
+- Push notification when job details change (time, address, crew size)
+- Push notification when job is cancelled or rescheduled
+- Notification when it is time to clock in (X minutes before job start)
 
 ---
 
 ### MODULE 7 — Bill of Lading & Forms
-DOT/FMCSA compliant document generation.
+DOT/FMCSA compliant document generation. All documents are auto-populated from the job record and dispatch assignment — no re-keying of data.
 
-- Bill of Lading (BOL) auto-generated from job record
-- BOL includes: estimated weight, inventory list, carton counts, special notes, valuation
-- High-value inventory form
-- Order for Service
-- Inventory exception form (PRE items)
-- Delivery receipt
-- Warehouse receipt
-- All forms include e-signature fields
-- PDF download and email delivery
-- DOT/FMCSA required fields enforced
-- **Exceeds CompuMove:** Digital BOL on mobile — no paper required
+#### Document Types
+- **Bill of Lading (BOL)** — generated from job record + dispatch details: crew names, truck, estimated weight, inventory summary, carton counts, special notes, valuation, origin/destination, time window
+- **Dispatch Ticket** — internal crew document: all job details, assigned crew members, truck, time window, special instructions, contact info. Generated when dispatch assignment is confirmed.
+- **Order for Service**
+- **High-Value Inventory Form**
+- **Inventory Exception Form (PRE items)**
+- **Delivery Receipt**
+- **Warehouse Receipt**
+- **Storage Agreement** (for storage-in accounts)
+
+#### Generation Rules
+- BOL and Dispatch Ticket are generated together when a dispatcher confirms crew + truck assignment
+- If dispatch details change after generation, documents can be regenerated — version history is kept
+- All forms include e-signature fields for customer and crew lead
+- PDF download and email delivery to customer
+- DOT/FMCSA required fields are enforced — system will not generate a BOL with missing required data
+- **Exceeds CompuMove:** Digital BOL and dispatch ticket on mobile — crew receives dispatch ticket on their portal automatically; no paper required
 
 ---
 
