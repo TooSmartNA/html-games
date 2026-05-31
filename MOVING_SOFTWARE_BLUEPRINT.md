@@ -1060,6 +1060,25 @@ This applies to every delete action across the platform: tasks, crew members, ve
 - Deleted records remain fully intact — all linked data, history, and documents are preserved
 - Records in the Recycle Bin are not visible in normal app views but are still queryable
 
+**Recycle Bin — Role-Based Visibility:**
+The Recycle Bin respects the same permission and data-scope rules as the rest of the platform. What you can see in the Recycle Bin mirrors what you could see before it was deleted.
+
+| Role | What they see in the Recycle Bin |
+|------|----------------------------------|
+| **Admin** | All deleted records across all roles, all business lines, all users |
+| **Owner / Manager** | All deleted records across both business lines; cannot permanently delete |
+| **HHG Coordinator** | Records deleted by them or deleted within HHG scope they have access to |
+| **Commercial Coordinator** | Records deleted by them or within Commercial scope |
+| **Salesperson / Estimator** | Only records they personally deleted (their own leads, their own estimates) |
+| **Dispatcher** | Records they deleted within dispatch scope (jobs, crew assignments) |
+| **Billing** | Records they deleted within billing scope (invoices, payment records) |
+| **Warehouse** | Records they deleted within warehouse scope (vault records, storage accounts) |
+| **Crew / Driver** | No access to the Recycle Bin |
+
+- Restore permission mirrors delete permission — if you could delete it, you can restore it
+- Permanent delete is Admin only regardless of who deleted the record
+- Admin can see the full history including what any user deleted and when
+
 **Recycle Bin Features:**
 - Filterable by record type (Jobs, Leads, Invoices, Customers, Documents, Crew, Vehicles, etc.)
 - Searchable by name, ID, customer, date deleted
