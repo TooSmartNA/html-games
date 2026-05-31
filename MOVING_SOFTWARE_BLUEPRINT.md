@@ -21,19 +21,21 @@ The prototype is a visual/interactive frontend built in Next.js with fake data. 
 
 | Screen | Route | Status |
 |--------|-------|--------|
-| Dashboard | `/` | ✅ Built — KPI cards, recent jobs/leads, alerts, all linked |
-| CRM & Leads | `/crm` | ✅ Built — pipeline (kanban) + task-driven view with urgency system |
-| Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, admin rate config |
+| Dashboard | `/` | ✅ Built — KPI cards (all linked), recent jobs/leads, alerts |
+| CRM Pipeline | `/crm` | ✅ Built — pipeline kanban + task-driven view with urgency system; both cards link to lead detail |
+| Lead Detail | `/crm/[id]` | ✅ Built — Overview (move details, salesperson assignment), Attachments (file list, upload from PC, BOL placeholder), Activity log |
+| Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, pricing model toggle, admin rate config, supervisor-as-driver rule |
 | Jobs List | `/jobs` | ✅ Built — list with type/status badges, links to detail |
 | Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Billing, Activity |
-| Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, crew roster panel, fleet panel, date change modal |
+| Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, **interactive drag-and-drop crew assignment**, truck assignment dropdown, unassign via X, date change modal |
+| Crew & Fleet Management | `/crew` | ✅ Built — Crew Members tab (add/edit/remove, availability toggle, absence log, restriction tags); Fleet tab (add/edit/remove, status change with notes, maintenance surfaced first) |
 | Customer Accounts | `/customers` | ✅ Built — list with tags, revenue, ratings |
-| Customer Profile | `/customers/[id]` | ✅ Built — 360° profile: stats, jobs, storage summary, invoices, communications |
-| BOL & Forms | `/bol` | ✅ Built — document list with status |
+| Customer Profile | `/customers/[id]` | ✅ Built — stats row, pinned note, Jobs / Storage / Invoices / Communications tabs |
+| BOL & Forms | `/bol` | ✅ Built — document list with type/status badges |
 | BOL Viewer | `/bol/[id]` | ✅ Built — full DOT-formatted document with print/download/send |
 
 **Deferred for later in prototype:**
-- Role preview toggle — switch between role views (Dispatcher, Coordinator, etc.) to see UI changes
+- Role preview toggle — switch between role views (Dispatcher, Coordinator, etc.) to see sidebar and data scope change
 
 **Workflow:** Brain dump → blueprint first → prototype built → prototype reveals new needs → back to blueprint
 
@@ -146,6 +148,23 @@ The CRM has two distinct views. Admin sets the company default; individual users
 - Their personal pipeline (same kanban/list but scoped to them)
 - Full detail on each of their leads: customer info, history, estimate tool, communication log
 - Cannot see other salespeople's leads or totals
+
+#### Lead Detail Page
+Clicking any lead card (in either pipeline or task view) opens the full lead file.
+
+**Header:**
+- Contact name, lead ID, hot flag, pipeline stage badge
+- Contact info strip (phone, email, origin → destination, move date)
+- Active task banner — amber strip showing the current task, due date, and a Complete button (always visible, impossible to miss)
+- Open Estimator button (links to estimating tool pre-loaded for this lead)
+- Mark Booked button
+
+**Tabs:**
+- **Overview** — origin/destination addresses with access notes, move date + flexibility, estimated value, services requested, customer notes; salesperson assignment dropdown (change directly from this page); coordinator, source, created date
+- **Attachments** — all files associated with this lead/job: estimates, BOL (once generated), signed paperwork, any uploaded documents; Upload File button to attach from PC; BOL placeholder card shown until lead is booked and dispatched
+- **Activity** — full chronological log of all actions (notes, emails, status changes, assignments); note input to log calls or updates
+
+**Design principle:** Lead detail is the salesperson's primary workspace — everything they need to progress the lead is on this one page without navigating away.
 
 ---
 
@@ -1140,4 +1159,4 @@ Build in this sequence — each module depends on the one before it:
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-30 — prototype and blueprint synced*
+*Last audited: 2026-05-30 (second pass) — prototype and blueprint fully synced*
