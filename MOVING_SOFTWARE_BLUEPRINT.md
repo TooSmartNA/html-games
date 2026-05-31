@@ -29,7 +29,7 @@ The prototype is a visual/interactive frontend built in Next.js with fake data. 
 | Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Activity; **Billing tab** shows full actuals review (crew timesheets with clock-in/out, flagged overtime, truck, materials, estimated vs actual comparison table, Generate Invoice button) |
 | Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, drag-and-drop crew assignment, truck dropdown, unassign via X, date change modal, **dispatcher men count override with +/− controls and "Adjusted" flag** |
 | Crew & Fleet Management | `/crew` | ✅ Built — Crew Members tab (add/edit/remove, availability toggle, absence log with types/dates, restriction tags); Fleet tab (add/edit/remove, inline status change with note, maintenance surfaced first) |
-| Billing & Invoicing | `/billing` | ✅ Built — 4 tabs: Pending Review (completed jobs awaiting invoice with full actuals breakdown, Generate & Send action), All Invoices (filterable table, expandable rows with partial payment input, Mark Paid), AR (aging buckets + by-customer table), Recurring Billing (storage accounts with pause/resume/cancel) |
+| Billing & Invoicing | `/billing` | ✅ Built — 4 tabs: Pending Review (**3 billing paths**: Bill Estimate / Bill Actual & Send / Edit Invoice with editable line items), All Invoices (filterable, expandable rows, Mark Paid), AR (aging buckets + by-customer), Recurring Billing |
 | Customer Accounts | `/customers` | ✅ Built — list with tags, revenue, ratings |
 | Customer Profile | `/customers/[id]` | ✅ Built — stats row, pinned note, Jobs / Storage / Invoices / Communications tabs |
 | BOL & Forms | `/bol` | ✅ Built — document list with type/status badges |
@@ -683,16 +683,26 @@ After a job event is marked complete in the field, the billing team reviews the 
 2. Job appears in billing module's **Pending Review** queue
 3. Billing opens the entry → reviews actuals (timesheets, truck, materials) vs. original estimate
 4. If actuals have flagged overtime or unexpected costs: note the reason, then proceed
-5. Click **Generate Invoice** → invoice created using actual amounts, ready to send
-6. Click **Send Invoice** → sent to customer; job drops from Pending queue and appears in All Invoices
+5. Three paths from here:
+   - **Bill Estimate** — invoice created using the original estimated amount, not actuals. Used when the customer was quoted a fixed price and that's what they'll pay regardless of what the job cost.
+   - **Bill Actual & Send** — invoice created from actuals as-is and sent immediately, no editing
+   - **Edit Invoice** — opens editable invoice pre-filled from actuals; billing can adjust line amounts, remove lines, add custom lines, add notes, then send. Total updates live. Shows variance vs actuals if adjusted.
+6. Invoice sent to customer; job drops from Pending queue
 7. Timesheets lock after invoice is sent — no changes without admin override
 
-**Key distinction:** The billing team is reviewing the actuals to *understand* the job cost before sending. They are not "approving" the actuals — those are what they are. The action is approving the invoice to go out.
+**Key distinction:** The billing team is reviewing the actuals to *understand* the job cost before sending. They are not "approving" the actuals — those are what they are. The action is generating and sending the invoice, with or without adjustments.
 
 #### Billing Module — Four Views
 The billing module is organized into four tabs:
 
-- **Pending Review** — completed jobs awaiting invoice. Each shows customer, job type, estimated total, actual total, and variance at a glance. Click to expand full actuals: crew timesheet per person (clock-in, clock-out, hours, rate, cost), truck cost, materials used, summary comparison. Overtime rows flagged amber. "Generate & Send Invoice" button per job; job drops from list once sent.
+- **Pending Review** — completed jobs awaiting invoice. Each card shows customer, job type, estimated total, actual total, and variance at a glance. Three billing paths per card:
+  - **Bill Estimate** — invoice sent for the original estimated amount, regardless of actuals. Used for fixed-price jobs where customer was quoted a set price.
+  - **Bill Actual & Send** — invoice created from actuals as-is and sent immediately, no editing
+  - **Edit Invoice** — opens an inline panel with three sub-tabs:
+    - *Actuals:* read-only crew timesheets (clock-in/out, hours, rate, cost), equipment, materials
+    - *Bill Estimate:* read-only original estimate breakdown with Send button
+    - *Edit Invoice:* editable invoice pre-filled from actuals; adjust amounts, remove lines, add custom lines, add notes; live total; shows variance vs actuals if adjusted; Send button
+  - After sending via any path, job drops from Pending queue and appears in All Invoices
 - **All Invoices** — full invoice ledger. Filterable by status (Draft/Sent/Partial/Overdue/Paid), business line (HHG/Commercial), billing type (One-time/Recurring/Milestone), and search. Each row expandable: shows file/job reference, salesperson, partial payment input, balance. Mark Paid button updates in real time.
 - **Accounts Receivable** — aging bucket summary cards (Current / 1–30 / 31–60 / 61–90 days) with totals; outstanding AR grouped by customer sorted by balance showing oldest invoice and worst aging bucket.
 - **Recurring Billing** — active storage billing accounts with monthly rate, next billing date, and actions: Adjust Rate, Pause, Resume, Cancel.
