@@ -352,6 +352,22 @@ Build in this sequence — each module depends on the one before it:
 
 ---
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js (React) |
+| Backend | Next.js API routes (full-stack) |
+| Database | PostgreSQL (via Supabase) |
+| Auth | Supabase Auth |
+| Hosting | Vercel (app) + Supabase (DB + storage) |
+| Mobile | Responsive web — same Next.js app, no separate native app |
+| Payments | Stripe |
+| SMS | Twilio |
+| Email | SendGrid / Mailgun |
+
+---
+
 ## What We're NOT Building (Yet)
 
 - Full accounting / general ledger (use QuickBooks integration instead)
