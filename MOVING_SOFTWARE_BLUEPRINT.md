@@ -146,15 +146,31 @@ Each job event has its own:
 ### MODULE 5 — Scheduling & Dispatch
 The operations hub. Dispatchers and coordinators live here. Designed for speed, accuracy, and flexibility.
 
-#### Dispatch Board
-- Monthly, weekly, and daily calendar views
-- Each job event appears as a card on the board showing: customer, address, time window, men required, truck type, current assignment status
+#### Dispatch Board — Views
+- **Month view** — full calendar grid showing all days; each day shows a summary chip (job count, capacity status). Click any day to drill into the day detail. Color-coded capacity heatmap across the month (green = available, yellow = busy, red = full/overbooked)
+- **Week view** — 7-day strip with job cards per day; crew roster and fleet panels on the sides
+- **Day view** — full detail for a single day; time-slotted layout showing job windows, crew assignments, and truck assignments
+- Switch freely between views; selected day persists across view changes
+- Each job event card shows: customer, address, time window, men required/filled, truck type, current assignment status
 - **Drag-and-drop** crew members from the crew roster panel onto job cards to assign them
 - **Dropdown assignment** on each job card as an alternative to drag-and-drop
 - Color-coded by job type (Local, LD, Commercial), status, and business line (HHG/Commercial)
 - Conflict detection — warns if a crew member or truck is double-booked
 - Capacity heatmap by day showing how many men and trucks are committed vs. available
 - Dispatcher notes per job per day
+
+#### Date Change Request Workflow
+Coordinators cannot directly change a job's date once it has been dispatched — they submit a request that goes through the dispatcher.
+
+1. Coordinator opens a job and clicks **Request Date Change** — enters the requested new date and a reason
+2. Dispatcher receives an **alert** on the dispatch board and in their task queue immediately
+3. Dispatcher reviews the request against the new date's capacity and crew availability
+4. Dispatcher can:
+   - **Approve** — date updates, crew/truck re-assigned if needed, coordinator and customer notified
+   - **Propose Alternative** — dispatcher suggests a different date, coordinator gets notified to accept or counter
+   - **Decline** — with a reason; coordinator is notified
+5. Full request history (who requested, what date, outcome) is logged on the job record
+6. Customer notification of confirmed date change is sent automatically on approval
 
 #### Job Resource Requirements
 Each job event has dispatcher-controlled resource fields:
@@ -492,8 +508,62 @@ The intelligence layer. Over 250 report types targeted.
 
 ---
 
+### MODULE 13A — Internal Task System
+The communication and accountability backbone of the platform. Every role has a task queue. Tasks can be created manually or triggered automatically by system events. This is how the team stays coordinated across every step of the workflow without relying on texts, emails, or verbal handoffs.
+
+#### What a Task Is
+A task is an actionable item assigned to a specific user or role with:
+- Title and description
+- Assigned to: specific user or role (e.g., "all Local Dispatchers")
+- Priority: Urgent / High / Normal / Low
+- Due date / due time
+- Linked record: job file, lead, invoice, crew member, vehicle, etc.
+- Status: Open → In Progress → Complete → Dismissed
+- Created by: user or System (auto-generated)
+
+#### Task Inbox
+Every user sees their personal task queue on login — sorted by priority and due date. Tasks appear in a persistent notification badge on the sidebar. Completing a task can trigger the next task in a workflow automatically.
+
+#### Manual Tasks
+Any user (within their permission level) can create a task and assign it to another user or role. Used for: follow-ups, reminders, approvals, internal handoffs.
+
+#### Automatic Task Rules (Admin-Configured)
+Admin builds trigger → action rules:
+
+| Trigger Event | Example Auto-Task Created |
+|--------------|--------------------------|
+| New lead assigned to salesperson | Task: "Contact lead within 2 hours" → assigned to that salesperson |
+| Estimate sent, no response in 3 days | Task: "Follow up on estimate EST-XXXX" → assigned to salesperson |
+| Job booked | Task: "Confirm crew and truck assignment" → assigned to Dispatcher |
+| Job dispatched (crew assigned) | Task: "Generate BOL and dispatch ticket" → assigned to Coordinator |
+| BOL generated | Task: "Review and approve BOL before job date" → assigned to Coordinator |
+| Job completed in field | Task: "Send post-move review request" → assigned to Salesperson |
+| Job completed in field | Task: "Generate and send invoice" → assigned to Billing |
+| Invoice overdue 7 days | Task: "Follow up on overdue invoice INV-XXXX" → assigned to Billing |
+| Storage account created | Task: "Confirm vault assignment and billing start date" → assigned to Warehouse |
+| Crew member reports vehicle issue | Task: "Vehicle issue reported — review and update status" → assigned to Maintenance |
+| Date change request submitted | Task: "Date change requested for JOB-XXXX — approve or propose alternative" → assigned to Dispatcher |
+| Date change approved | Task: "Notify customer of confirmed date change" → assigned to Coordinator |
+
+#### Rule Builder (Admin Only)
+- Select trigger event from a dropdown of all system events
+- Select task template (title, description, priority, due window — e.g., "within 2 hours" or "1 day before job date")
+- Select assignee: specific user, role, or the user who triggered the event
+- Link to record: auto-link to the relevant job, lead, invoice, etc.
+- Rules can be enabled/disabled without deleting them
+- Rules are scoped per business line (HHG rules, Commercial rules, or both)
+
+#### Task Visibility
+- Users see only their own tasks
+- Coordinators see their own tasks + tasks assigned to their team
+- Dispatchers see their own tasks + all dispatch-related tasks across the board
+- Admins and Owners see all tasks across all roles
+- Tasks linked to a record also appear on that record's Activity tab
+
+---
+
 ### MODULE 14 — Automation & Follow-Ups
-Set it and forget it workflows.
+Set it and forget it workflows. Customer-facing only — email and SMS sequences triggered by job events. For internal team tasks, see Module 13A.
 
 - Lead response automation (instant reply to new inbound lead)
 - Estimate follow-up sequence (Day 1, Day 3, Day 7 if not booked)
