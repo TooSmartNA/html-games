@@ -1042,8 +1042,20 @@ These rules apply automatically during estimation and are visible on the estimat
 #### Deleted Records & Data Recovery System
 The moving industry is highly dependent on records. An accidental deletion can cause operational, legal, and billing problems. Nothing in this platform is permanently deleted without a deliberate multi-step admin process. The goal: make recovery easy, make permanent deletion hard.
 
-**Soft Delete — Everything Goes to the Recycle Bin First:**
-- Deleting any record (job, lead, invoice, customer, BOL, crew member, vehicle, document, etc.) moves it to a **Recycle Bin**, not permanent deletion
+**Inline Undo Toast — First Line of Defense:**
+Before anything reaches the Recycle Bin, the user gets an immediate "Undo" opportunity right where they are.
+
+1. User clicks any Delete/Remove button anywhere in the app
+2. The item disappears from the UI immediately (fast, feels responsive)
+3. A **toast notification** appears at the bottom of the screen: *"[Item name] deleted. Undo"* with a 5-second countdown bar
+4. If the user clicks **Undo** → item reappears instantly, no Recycle Bin involved
+5. If the toast expires (5 seconds) → item moves silently to the Recycle Bin
+6. The toast also shows a "View in Recycle Bin" link for easy access after it expires
+
+This applies to every delete action across the platform: tasks, crew members, vehicles, leads, pipeline stages, automation sequences, invoice lines, document attachments, and more.
+
+**Soft Delete — Everything Goes to the Recycle Bin After Undo Expires:**
+- After the 5-second undo window closes, any deleted record (job, lead, invoice, customer, BOL, crew member, vehicle, document, etc.) moves to the **Recycle Bin**, not permanent deletion
 - The Recycle Bin is accessible by Admin and Managers from Admin & Settings
 - Deleted records remain fully intact — all linked data, history, and documents are preserved
 - Records in the Recycle Bin are not visible in normal app views but are still queryable
