@@ -821,6 +821,37 @@ Platform configuration. Admin role only. Philosophy: **everything has a sensible
 - Company profile: name, logo, DOT/MC numbers, insurance, address, contact info
 - Document templates: BOL header, invoice branding, estimate letterhead
 
+#### Theme & Brand Customization (Admin Only)
+The platform's visual appearance is customizable per company so it can match their brand. All theming is done through the Admin panel — no code required.
+
+**Layout Templates (pick one as the base):**
+- **Professional Dark Sidebar** — dark navy sidebar, clean light content area (default; the premium SaaS look)
+- **Full Light** — all-light, minimal feel
+- **Full Dark** — dark throughout, high contrast
+- More templates can be added over time
+
+**Brand Color Customization:**
+- Primary accent color — used for active states, buttons, links, highlights (pick from palette or enter hex/brand code)
+- Sidebar background color — default is deep navy; can be changed to match brand (e.g., company's dark green, charcoal, etc.)
+- Sidebar text/icon color — auto-calculated for contrast, or manually set
+
+**Color Palette Options (presets):**
+- Navy Blue (default)
+- Charcoal
+- Forest Green
+- Deep Burgundy
+- Slate Gray
+- Midnight Black
+- Custom (hex input)
+
+**Company Logo:**
+- Upload company logo — appears in the sidebar header and on all generated documents (BOL, estimates, invoices)
+- Light and dark variants of the logo can be uploaded separately
+
+**Document Branding:**
+- BOL, estimates, invoices, and dispatch tickets use the company name, logo, and primary color for headers
+- Footer text configurable (DOT/MC number, address, contact info)
+
 #### User & Role Management
 - User accounts and role assignments
 - **Custom Role Builder** — visual permission matrix (Full / Read-Only / Hidden per module), business line scope, data scope
