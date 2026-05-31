@@ -977,6 +977,21 @@ The platform has two distinct business lines that operate in parallel:
 - Admin is the only role that can create/edit roles, users, and workflows
 - Audit log captures every action with user, role, timestamp, and record regardless of role
 
+### UX Principle for Limited-Role Views
+The moving industry workforce is often not tech-native. For users with limited roles (Crew, Dispatcher, Salesperson, Warehouse), the UI must be **immediately obvious** — they should never have to think about what to do next.
+
+**Design rules for limited-role views:**
+- The most important action for the day is **above the fold and impossible to miss** — not buried in menus
+- Task-driven interfaces are preferred over pipeline/dashboard views for operational roles
+- Crew portal: one screen, their jobs for today, giant clock-in button — nothing else
+- Dispatcher: unassigned and partial jobs flagged red/amber at the top, drag-and-drop is the primary interaction
+- Salesperson: overdue tasks shown first in red, action buttons are clear and labeled (not icon-only)
+- Warehouse: current jobs requiring their attention listed in order of urgency
+- All limited-role views use larger touch targets, high-contrast status indicators, and minimal navigation
+- When something is overdue or requires immediate action, it should feel urgent — not just a subtle color change
+- Error states and missing information (e.g., unassigned crew on a job) are prominent warnings, not footnotes
+- Avoid jargon in field-facing interfaces — "Clock In" not "Submit Time Entry", "Job Complete" not "Mark Event as Fulfilled"
+
 ---
 
 ## Features That Exceed CompuMove 8
