@@ -1678,6 +1678,695 @@ Build in this sequence — each module depends on the one before it:
 
 ---
 
+---
+
+## Technical Architecture Decisions
+
+This section answers the "how" questions that must be decided before backend development begins. These decisions are made; they do not need to be revisited unless the product direction changes significantly.
+
+### Developer Philosophy
+
+The owner directs **what** to build (product decisions, workflows, business rules). The developer (Claude Code) makes all **technical implementation decisions** — which library, which database pattern, how to structure a query, which service to use. If there is one logical right answer given the stack, it is used without asking. Only genuinely product-impacting tradeoffs are surfaced for owner input.
+
+---
+
+### Multi-Tenancy Model
+
+**Decision: Full multi-tenant SaaS from day one.**
+
+MovePro will be built as a platform that multiple moving companies can use simultaneously. The initial deployment will be a single company (the owner's company) used as a stress-test and production validation. When ready to onboard additional companies, the architecture is already in place — no refactoring needed.
+
+**Implementation:**
+- Every data table includes a `company_id` foreign key
+- All database queries are automatically scoped to the authenticated user's `company_id`
+- Supabase Row Level Security (RLS) enforces this at the database level — a user from Company A cannot read, write, or even detect the existence of Company B's data, regardless of what the application layer does
+- Company onboarding creates a new row in the `companies` table and seeds the company's default roles, pipeline stages, truck types, and task rules
+- Each company gets its own isolated data environment within the shared database
+
+**Launch approach:** Deploy with one `company_id`. When Company 2 signs up, they get a new `company_id` and their data is completely separate. No code changes required.
+
+---
+
+### Security Model
+
+**Two layers, different levels of strictness:**
+
+#### Layer 1 — Company Isolation (External Security) — STRICT
+This is the most critical security layer. A user from one moving company must never be able to see another company's data under any circumstances.
+
+- Enforced by **Supabase Row Level Security (RLS)** at the database level
+- Every SELECT, INSERT, UPDATE, DELETE query is automatically filtered by `company_id = auth.jwt() -> 'company_id'`
+- This cannot be bypassed from the application layer — it's enforced by the database itself
+- Even if there is a bug in the Next.js code, the database will not return another company's rows
+
+#### Layer 2 — Internal Role Permissions (Employee Access) — MODERATE
+Controls what employees within a company can see and do. Less critical (employees are trusted) but still enforced.
+
+- Enforced by **Next.js API middleware** — every API route checks the authenticated user's role and permissions before processing
+- The RBAC permission matrix (Full / Read-Only / Hidden per module) is stored in the `roles` table and checked on every request
+- Sensitive modules (Billing, Rate Sheets, Admin, Recycle Bin) get explicit server-side checks even if the UI already hides them
+- For V1: internal RBAC is enforced at the API layer. Row-level employee scoping (e.g., a salesperson can only see their own leads) is enforced in the query logic, not as RLS. This is sufficient for V1 and can be tightened in V2 if needed.
+
+#### Authentication
+- **Supabase Auth** handles login, sessions, password reset, and JWTs
+- JWT includes `company_id` and `role_id` as custom claims — available server-side without an extra DB lookup
+- Sessions expire after 24 hours of inactivity; users re-authenticate automatically via refresh tokens
+- All API routes require a valid session token; unauthenticated requests are rejected
+- Customer portal users have a separate, limited JWT that only grants access to their own portal data
+
+---
+
+### Database Schema
+
+Full table definitions. All tables include `created_at TIMESTAMPTZ DEFAULT now()` and `updated_at` where records are mutable. All IDs are UUIDs.
+
+#### Tenancy & Users
+
+**`companies`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| name | text | Company display name |
+| slug | text UNIQUE | URL-safe identifier |
+| dot_number | text | |
+| mc_number | text | |
+| address | text | |
+| phone | text | |
+| email | text | |
+| logo_url | text | Supabase Storage URL |
+| subscription_status | text | active / trial / suspended |
+| settings | jsonb | Theme, default business line, etc. |
+
+**`users`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | Matches Supabase Auth user ID |
+| company_id | uuid FK → companies | |
+| role_id | uuid FK → roles | |
+| name | text | |
+| email | text | |
+| phone | text | |
+| active | boolean | |
+
+**`roles`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK → companies | |
+| name | text | e.g. "HHG Coordinator" |
+| scope | text | both / hhg / commercial |
+| permissions | jsonb | `{ "CRM & Leads": "full", "Billing": "hidden", ... }` |
+| is_default | boolean | Assigned to new users automatically |
+
+---
+
+#### CRM & Sales
+
+**`leads`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| lead_no | text | L-XXXX format |
+| name | text | Contact or company name |
+| phone | text | |
+| email | text | |
+| origin_city | text | |
+| origin_state | text | |
+| destination_city | text | |
+| destination_state | text | |
+| move_date | date | |
+| estimated_rooms | integer | Room count from initial call |
+| estimated_value | numeric | Added after estimate is built |
+| source | text | Website / HireAHelper / Referral / etc. |
+| stage | text | New Lead / Contacted / Estimate Sent / Follow-Up / Quoted / Booked |
+| business_line | text | hhg / commercial |
+| salesperson_id | uuid FK → users | Nullable (unassigned) |
+| coordinator_id | uuid FK → users | |
+| hot | boolean | |
+| notes | text | |
+| booked_at | timestamptz | Set when stage → Booked |
+
+**`lead_activity`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| lead_id | uuid FK → leads | |
+| company_id | uuid FK | |
+| type | text | status / note / email / lead / complete |
+| user_id | uuid FK → users | Null if system-generated |
+| text | text | |
+| created_at | timestamptz | |
+
+**`customers`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| customer_no | text | CUST-XXXX format |
+| name | text | |
+| phone | text | |
+| email | text | |
+| type | text | hhg / commercial |
+| tags | text[] | Recurring, VIP, Military, etc. |
+| pinned_note | text | Shown prominently on profile |
+| rating | integer | 1–5 internal rating |
+| notes | text | |
+
+---
+
+#### Jobs & Files
+
+**`files`** ← Top-level customer relationship container
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| file_no | text | FILE-YYYY-XXXX format |
+| customer_id | uuid FK → customers | |
+| lead_id | uuid FK → leads | Origin lead |
+| salesperson_id | uuid FK → users | |
+| coordinator_id | uuid FK → users | |
+| business_line | text | hhg / commercial |
+
+**`job_events`** ← Individual service instances under a file
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| file_id | uuid FK → files | |
+| job_no | text | JOB-XXXX format |
+| event_type | text | move / packing / storage_in / storage_recurring / haul_out / partial_delivery / commercial_move |
+| status | text | booked / dispatched / in_progress / completed / invoiced / cancelled |
+| business_line | text | hhg / commercial |
+| move_date | date | |
+| time_window | text | "8:00 AM – 12:00 PM" |
+| origin_address | text | |
+| origin_city | text | |
+| origin_state | text | |
+| destination_address | text | |
+| destination_city | text | |
+| destination_state | text | |
+| estimated_hours | numeric | |
+| men_required | integer | From estimate |
+| men_adjusted | integer | Dispatcher override; null if not overridden |
+| valuation_coverage | text | released_standard / released_basic / full_value / third_party |
+| special_instructions | text | |
+| notes | text | |
+
+**`job_crew_assignments`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| job_event_id | uuid FK → job_events | |
+| company_id | uuid FK | |
+| crew_member_id | uuid FK → crew_members | |
+| assigned_at | timestamptz | |
+
+**`job_truck_assignments`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| job_event_id | uuid FK → job_events | |
+| company_id | uuid FK | |
+| vehicle_id | uuid FK → vehicles | |
+| assigned_at | timestamptz | |
+
+**`crew_timesheets`** ← Clock-in/out records per job per crew member
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| job_event_id | uuid FK → job_events | |
+| company_id | uuid FK | |
+| crew_member_id | uuid FK → crew_members | |
+| clock_in | timestamptz | |
+| clock_out | timestamptz | Null while active |
+| hours_worked | numeric | Computed on clock-out; stored for billing |
+| rate_at_time | numeric | Snapshot of crew member's rate at job time — never changes after clock-out |
+
+---
+
+#### Estimating & Quotes
+
+**`estimates`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| lead_id | uuid FK → leads | |
+| estimate_no | text | EST-XXXX |
+| total_cf | numeric | |
+| difficulty | text | easy / moderate / hard / very_hard |
+| target_days | integer | |
+| men_needed | integer | |
+| labor_cost | numeric | |
+| supervisor_cost | numeric | |
+| truck_cost | numeric | |
+| fuel_surcharge_pct | numeric | |
+| total | numeric | |
+| status | text | draft / sent / accepted / declined / expired |
+| sent_at | timestamptz | |
+
+**`estimate_lines`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| estimate_id | uuid FK → estimates | |
+| name | text | Item name |
+| cf | numeric | Cubic footage |
+| qty | integer | |
+| note | text | |
+| custom | boolean | User-added vs library item |
+| sort_order | integer | |
+
+**`quotes`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| lead_id | uuid FK → leads | |
+| estimate_id | uuid FK → estimates | Nullable — quotes can exist without an estimate |
+| quote_no | text | Q-YYYY-XXXX |
+| status | text | draft / sent / viewed / accepted / declined / expired |
+| expires_at | date | |
+| sent_at | timestamptz | |
+| viewed_at | timestamptz | |
+| accepted_at | timestamptz | |
+| total | numeric | |
+| notes | text | |
+
+**`quote_lines`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| quote_id | uuid FK → quotes | |
+| label | text | |
+| detail | text | |
+| amount | numeric | |
+| sort_order | integer | |
+
+---
+
+#### Billing
+
+**`invoices`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| job_event_id | uuid FK → job_events | |
+| customer_id | uuid FK → customers | |
+| invoice_no | text | INV-XXXX |
+| billing_type | text | estimate / actual / edited |
+| status | text | draft / sent / partial / paid / overdue |
+| total | numeric | |
+| amount_paid | numeric | Default 0 |
+| due_date | date | |
+| sent_at | timestamptz | |
+| paid_at | timestamptz | |
+| notes | text | |
+
+**`invoice_lines`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| invoice_id | uuid FK → invoices | |
+| label | text | |
+| detail | text | |
+| amount | numeric | |
+| sort_order | integer | |
+| deleted | boolean | Soft-delete for edit invoice flow |
+
+**`payments`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| invoice_id | uuid FK → invoices | |
+| company_id | uuid FK | |
+| amount | numeric | |
+| method | text | check / ach / card / cash |
+| reference | text | Check number, transaction ID, etc. |
+| paid_at | timestamptz | |
+| notes | text | |
+
+---
+
+#### Crew & Fleet
+
+**`crew_members`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| name | text | |
+| role | text | Lead / Driver / Helper / Warehouse Lead / etc. |
+| team | text | Local / Long Distance / Commercial / Warehouse |
+| phone | text | |
+| email | text | |
+| status | text | active / inactive / terminated |
+| availability | text | available / off / unavailable |
+| pay_rate | numeric | Hourly rate |
+| rate_type | text | hourly / flat |
+| hire_date | date | |
+| notes | text | |
+
+**`crew_absences`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| crew_member_id | uuid FK → crew_members | |
+| company_id | uuid FK | |
+| type | text | PTO / Call Off / No Show / Injury / Suspension / Other |
+| date_from | date | |
+| date_to | date | Null for open-ended (injury leave) |
+| notes | text | |
+| logged_by_id | uuid FK → users | |
+
+**`crew_restrictions`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| crew_member_id | uuid FK → crew_members | |
+| company_id | uuid FK | |
+| tag | text | Light Duty / No Driving / Certification Lapsed / Probationary |
+| added_at | timestamptz | |
+
+**`vehicles`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| unit | text | "Truck #3" |
+| type | text | 26ft Box Truck / Cargo Van / etc. |
+| make | text | |
+| model | text | |
+| year | text | |
+| license_plate | text | |
+| vin | text | |
+| status | text | active / in_maintenance / out_of_service / reserved / retired |
+| status_note | text | |
+
+---
+
+#### Warehouse & Storage
+
+**`warehouses`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| name | text | |
+| address | text | |
+| total_vaults | integer | |
+| sqft | integer | |
+| active | boolean | |
+
+**`vaults`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| warehouse_id | uuid FK → warehouses | |
+| unit | text | "Vault A-07" |
+| row | text | |
+| section | text | |
+| bay | text | |
+| size | text | "10×10" |
+| capacity_cf | integer | |
+| used_cf | integer | |
+| status | text | occupied / empty / partial / reserved |
+| storage_type | text | long_term / sit / commercial |
+| customer_id | uuid FK → customers | Null if empty |
+| file_id | uuid FK → files | |
+| since | date | |
+| rate | numeric | |
+| billing_cycle | text | monthly / daily |
+| notes | text | |
+
+**`vault_items`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| vault_id | uuid FK → vaults | |
+| company_id | uuid FK | |
+| name | text | |
+| qty | integer | |
+| cf | numeric | |
+| condition | text | good / fair / damaged / unknown |
+| notes | text | |
+
+**`incoming_shipments`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| warehouse_id | uuid FK → warehouses | |
+| name | text | Shipment reference name |
+| shipper | text | |
+| customer_id | uuid FK → customers | |
+| file_id | uuid FK → files | |
+| arrival_type | text | specific / spread |
+| arrival_date | date | Null if spread |
+| arrival_time | text | Null if spread |
+| arrival_date_from | date | Null if specific |
+| arrival_date_to | date | Null if specific |
+| target_vault_id | uuid FK → vaults | |
+| status | text | expected / arrived / received / discrepancy / overdue |
+| assigned_to_id | uuid FK → crew_members | |
+| contents | text | |
+| special_instructions | text | |
+| receiving_complete | boolean | |
+
+---
+
+#### Claims
+
+**`claims`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| job_event_id | uuid FK → job_events | |
+| customer_id | uuid FK → customers | |
+| claim_no | text | CLM-XXXX |
+| coverage_type | text | released_basic / released_standard / full_value / third_party |
+| status | text | filed / under_review / settlement_offered / accepted / disputed / closed |
+| filed_at | date | |
+| notes | text | |
+| settlement_amount | numeric | |
+| assigned_to_id | uuid FK → users | |
+
+**`claim_items`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| claim_id | uuid FK → claims | |
+| name | text | Item name |
+| weight_lbs | numeric | |
+| declared_value | numeric | |
+| damage_description | text | |
+| settlement_amount | numeric | Auto-calculated for released value |
+
+---
+
+#### Documents & Files
+
+**`documents`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| job_event_id | uuid FK → job_events | Nullable |
+| lead_id | uuid FK → leads | Nullable |
+| customer_id | uuid FK → customers | Nullable |
+| type | text | bol / estimate / invoice / order_for_service / receiving_report / other |
+| name | text | |
+| status | text | draft / sent / signed / completed |
+| file_url | text | Supabase Storage URL |
+| version | integer | Default 1; incremented on regeneration |
+
+**File storage:** All uploaded files, generated PDFs (BOLs, invoices, estimates), and photos are stored in **Supabase Storage** in a bucket named `company-files`, organized as `/{company_id}/{document_type}/{document_id}.pdf`. Access is controlled by Supabase Storage RLS policies matching the same `company_id` isolation as the database.
+
+**PDF generation:** All documents (BOL, invoice, estimate, timesheet) are generated server-side using **`@react-pdf/renderer`** (react-pdf). Generation is triggered by a Next.js API route, the PDF is uploaded to Supabase Storage, and the `file_url` is saved to the `documents` table. The user always downloads from the stored URL — PDFs are never generated on-demand twice.
+
+---
+
+#### Automation & Tasks
+
+**`automation_sequences`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| name | text | |
+| trigger | text | new_lead / estimate_sent / job_booked / etc. |
+| category | text | lead_nurture / operational / post_move |
+| channel | text | email / sms / both |
+| status | text | active / paused / draft |
+| business_line | text | hhg / commercial / both |
+
+**`automation_steps`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| sequence_id | uuid FK → automation_sequences | |
+| company_id | uuid FK | |
+| delay_hours | integer | Hours after previous step (0 = immediate) |
+| channel | text | email / sms |
+| subject | text | Email subject (null for SMS) |
+| body | text | Message body with `{firstName}` style variables |
+| sort_order | integer | |
+
+**`automation_sends`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| step_id | uuid FK → automation_steps | |
+| company_id | uuid FK | |
+| lead_id | uuid FK → leads | |
+| status | text | pending / sent / delivered / failed / opened |
+| scheduled_at | timestamptz | |
+| sent_at | timestamptz | |
+| opened_at | timestamptz | |
+
+**`tasks`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| assigned_to_id | uuid FK → users | Nullable — assigned to a role instead |
+| assigned_to_role | text | Nullable — if assigned to all users with a role |
+| title | text | |
+| description | text | |
+| priority | text | urgent / high / normal / low |
+| status | text | open / in_progress / complete / dismissed |
+| due_date | date | |
+| linked_record_type | text | lead / job / invoice / crew_member / vehicle |
+| linked_record_id | uuid | |
+| created_by | text | user_id or "system" |
+| notes | text | |
+
+**`task_rules`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| trigger_event | text | new_lead_assigned / estimate_sent / job_completed / etc. |
+| task_title | text | Template with `{jobNo}` style variables |
+| task_description | text | |
+| priority | text | |
+| due_window | text | "2h" / "1d" / "3d" / "1w" |
+| assignee_role | text | Which role the task is assigned to |
+| business_line | text | hhg / commercial / both |
+| active | boolean | |
+
+---
+
+#### Integrations & API
+
+**`integrations`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| key | text | quickbooks / twilio / google_maps / stripe / etc. |
+| status | text | connected / disconnected / error |
+| config | jsonb | Encrypted API keys, tokens, account IDs |
+| connected_at | timestamptz | |
+| last_sync_at | timestamptz | |
+| error_message | text | |
+
+**`api_keys`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| name | text | |
+| key_hash | text | bcrypt hash — full key shown only at creation |
+| scopes | text[] | ["jobs:read", "invoices:read"] |
+| active | boolean | |
+| last_used_at | timestamptz | |
+
+**`webhook_endpoints`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| url | text | |
+| events | text[] | ["job.created", "invoice.paid"] |
+| status | text | active / failing / paused |
+| last_triggered_at | timestamptz | |
+| success_rate | numeric | Rolling 30-day % |
+
+---
+
+#### System
+
+**`audit_log`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| user_id | uuid FK → users | |
+| action | text | create / update / delete / restore |
+| record_type | text | lead / job / invoice / etc. |
+| record_id | uuid | |
+| changes | jsonb | `{ field: { from: x, to: y } }` |
+| created_at | timestamptz | Immutable — no updates ever |
+
+**`recycle_bin`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| deleted_by_id | uuid FK → users | |
+| record_type | text | |
+| record_id | uuid | Original ID of deleted record |
+| record_data | jsonb | Full snapshot of the record at time of deletion |
+| deleted_at | timestamptz | |
+| expires_at | timestamptz | 90 days after deleted_at by default |
+| restored_at | timestamptz | Null until restored |
+
+---
+
+### Background Jobs
+
+These processes run on a schedule or in response to events. They cannot be triggered by a user directly.
+
+**Implementation:** Vercel Cron Jobs for time-based jobs; Supabase database triggers + pg_cron for data-driven jobs. When we start building each module, the relevant background job is built alongside it.
+
+| Job | Trigger | What it does |
+|-----|---------|-------------|
+| **Recurring invoice generation** | 1st of each month, midnight | For every active vault with `billing_cycle = monthly`, creates an invoice record and queues delivery |
+| **Automation sequence processor** | Every 15 minutes | Checks `automation_sends` for items with `scheduled_at <= now()` and `status = pending`; sends via Twilio/SendGrid; updates status |
+| **Invoice overdue checker** | Daily at 8am | Marks invoices past `due_date` as `overdue`; creates tasks for billing team |
+| **Lead follow-up reminder** | Daily at 8am | Checks leads with no activity in X days; creates tasks per task rules |
+| **Recycle bin cleanup** | Daily at midnight | Permanently deletes records where `expires_at < now()` and `restored_at IS NULL`; alerts admin before financial records are purged |
+| **Webhook delivery** | On event | When a job/invoice/lead event fires, POST payload to all matching `webhook_endpoints` for that company; update success rate |
+| **Integration sync** | Per integration schedule | QuickBooks sync every 4 hours; HireAHelper lead pull every 5 minutes; etc. |
+| **Capacity projection** | Daily at 6am | Recalculates 30/60/90-day vault demand forecast and updates warehouse metrics |
+
+---
+
+### Rate Sheets Configuration Storage
+
+Rate sheets (crew hourly rates, CZAR-LITE grid, fuel surcharge, truck rates) are stored in a `rate_configs` table as versioned JSONB blobs rather than individual rows. This makes it easy to update the entire rate sheet atomically and keep a history of changes.
+
+**`rate_configs`**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| company_id | uuid FK | |
+| type | text | local_crew / local_trucks / czar_lite / fuel_surcharge |
+| config | jsonb | Full rate structure |
+| effective_date | date | When this rate version takes effect |
+| created_by_id | uuid FK → users | |
+| created_at | timestamptz | |
+
+Estimates and invoices snapshot the rates at time of creation so historical records are never affected by rate changes.
+
+---
+
 ## What We're NOT Building (Yet)
 
 - Full accounting / general ledger (use QuickBooks integration instead)
