@@ -698,21 +698,33 @@ Platform configuration. Admin role only. Philosophy: **everything has a sensible
 Admins define the full fleet type library. Each truck type has:
 - Name (e.g., "16ft Box Truck", "26ft Box Truck", "53ft Semi Trailer", "Cargo Van", "Sprinter Van")
 - **Cubic footage capacity** — used by the estimating engine to calculate truck requirements
-- Cost per day / cost per mile (for job costing)
+- **Pricing model** (per truck type, switchable):
+  - **Per Day** — flat daily rate for the truck regardless of hours
+  - **Truck + Driver Hourly** — combined hourly rate covering the truck and its driver together (common for local moves); driver is not billed separately from crew when this model is used
+- Cost per mile (for LD job costing, separate from local pricing)
 - Minimum crew requirement for this truck type (overrides global default)
-- Active / retired status
+- **Active / Available** — whether this truck type appears in the estimator and dispatch
+- **Priority** — when auto-allocating trucks in the estimator, higher-priority types are preferred. Admins can drag to reorder priority.
 
 **Default truck types shipped with the system (all editable):**
 
-| Type | Capacity | Min Crew |
-|------|----------|----------|
-| Cargo Van | 200 cu ft | 1 driver |
-| Sprinter Van | 350 cu ft | 1 driver |
-| 16ft Box Truck | 800 cu ft | 1 driver + 1 helper |
-| 26ft Box Truck | 1,500 cu ft | 1 driver + 1 helper |
-| 53ft Semi Trailer | 3,000 cu ft | 1 driver + 2 helpers |
+| Type | Capacity | Min Crew | Default Pricing |
+|------|----------|----------|----------------|
+| Cargo Van | 200 cu ft | 1 driver | Per Day |
+| Sprinter Van | 350 cu ft | 1 driver | Per Day |
+| 16ft Box Truck | 800 cu ft | 1 driver + 1 helper | Per Day or Truck+Driver Hourly |
+| 26ft Box Truck | 1,500 cu ft | 1 driver + 1 helper | Per Day or Truck+Driver Hourly |
+| 53ft Semi Trailer | 3,000 cu ft | 1 driver + 2 helpers | Per Day |
 
-Admins can add custom truck types at any time (e.g., "16ft Liftgate", "Flatbed 40ft").
+- Admins can add custom truck types at any time (e.g., "16ft Liftgate", "Flatbed 40ft")
+- Admins can **disable** truck types their company doesn't own — disabled types never appear in the estimator or dispatch board
+- Companies with only large trucks (e.g., 26ft and up) simply disable the smaller types
+
+#### Truck Assignment in Estimating — Auto vs. Manual
+- **Auto mode (default):** estimating engine allocates trucks based on total cubic footage and the company's active truck types in priority order
+- **Manual override:** salesperson or coordinator can switch to manual mode on any estimate and specify exact truck types and quantities — overrides the auto-allocation entirely
+- Both modes update crew minimums and pricing in real time
+- Manual override is noted on the estimate so coordinators know it was not auto-calculated
 
 #### Job Staffing Rules (Admin-Configurable Defaults)
 Rules that auto-populate crew requirements when a job is created. All can be overridden per job by a dispatcher.
