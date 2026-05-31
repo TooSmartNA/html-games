@@ -1,7 +1,9 @@
 # Moving Software — Master Blueprint
-**Project Codename:** TBD  
+**Project Codename:** MovePro  
 **Goal:** Build a full-service moving company platform that matches and exceeds CompuMove 8  
-**Status:** Pre-development — feature planning phase
+**Status:** Active prototype development — feature discovery phase  
+**Prototype repo:** `github.com/TooSmartNA/moving-software` (Next.js, private)  
+**Blueprint repo:** `github.com/TooSmartNA/html-games` (MOVING_SOFTWARE_BLUEPRINT.md)
 
 ---
 
@@ -11,7 +13,65 @@ A complete, cloud-based moving company management platform covering every touchp
 
 ---
 
+## Prototype Status
+
+The prototype is a visual/interactive frontend built in Next.js with fake data. No real backend yet. It is used as a feature discovery tool — screens reveal new requirements which feed back into this blueprint before being refined in the prototype.
+
+**Screens built (prototype):**
+
+| Screen | Route | Status |
+|--------|-------|--------|
+| Dashboard | `/` | ✅ Built — KPI cards, recent jobs/leads, alerts, all linked |
+| CRM & Leads | `/crm` | ✅ Built — pipeline (kanban) + task-driven view with urgency system |
+| Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, admin rate config |
+| Jobs List | `/jobs` | ✅ Built — list with type/status badges, links to detail |
+| Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Billing, Activity |
+| Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, crew roster panel, fleet panel, date change modal |
+| Customer Accounts | `/customers` | ✅ Built — list with tags, revenue, ratings |
+| Customer Profile | `/customers/[id]` | ✅ Built — 360° profile: stats, jobs, storage summary, invoices, communications |
+| BOL & Forms | `/bol` | ✅ Built — document list with status |
+| BOL Viewer | `/bol/[id]` | ✅ Built — full DOT-formatted document with print/download/send |
+
+**Deferred for later in prototype:**
+- Role preview toggle — switch between role views (Dispatcher, Coordinator, etc.) to see UI changes
+
+**Workflow:** Brain dump → blueprint first → prototype built → prototype reveals new needs → back to blueprint
+
+---
+
+---
+
 ## Module Map (Build Order TBD)
+
+### MODULE 0 — Dashboard
+The landing screen after login. Gives each user a real-time snapshot of what needs attention today. Content is role-scoped — each role sees only the KPIs and alerts relevant to them.
+
+#### KPI Cards (role-dependent)
+- Open Leads (links to CRM)
+- Jobs Today (links to Dispatch)
+- Jobs This Month (links to Jobs list)
+- Open Invoices / AR value (links to Billing)
+- Storage Units occupied/total (links to Warehouse)
+- Revenue This Month (links to Reporting)
+
+#### Recent Activity
+- Recent Jobs — last 5 jobs with customer, ID, type, date, status; each row links to job detail
+- Recent Leads — last 5 leads with name, source, value, pipeline stage; links to CRM
+
+#### Alerts & Reminders
+- Overdue invoices
+- Estimates with no response past X days
+- Completed jobs needing review request
+- Other auto-generated alerts from the task system
+- Each alert is clickable and links to the relevant record
+
+#### Role Scoping
+- Salesperson sees: their leads, their estimates, their jobs
+- Dispatcher sees: today's dispatch board, unassigned/partial jobs, crew availability
+- Coordinator sees: all leads, all jobs, overdue follow-ups
+- Admin/Owner sees: full KPI set with revenue and margin data
+
+---
 
 ### MODULE 1 — CRM & Lead Management
 The front door of the business. Every job starts here.
@@ -92,19 +152,41 @@ The CRM has two distinct views. Admin sets the company default; individual users
 ### MODULE 2 — Estimating
 The core sales tool. Must be fast, accurate, and usable in the field.
 
-- Room-by-room inventory builder (furniture + box counts)
-- Cube/weight estimation engine
-- Local hourly rate estimating
-- Long distance weight-based estimating
+#### Inventory Builder
+- **Flat item list** (not room-by-room) — all items in a single searchable list, organized by category for browsing
+- Preset item library with 60+ common household and commercial items, each with pre-set cubic footage
+- Category filter (Living Room, Bedroom, Dining Room, Kitchen, Garage/Outdoor, Boxes, Misc)
+- Custom item entry: add any item with a name, custom cubic footage, and note
+- Qty +/− per item; inline note field per item
+- Simple **Rooms** count field in the header (optional, for reference only — not structural)
+- Running total cubic footage updates live as items are added
+
+#### Calculation Engine
+- **Cubic footage → truck allocation** — auto-allocates truck types based on total cube and company's active fleet (admin-configurable truck types with capacities)
+- Manual truck override — salesperson/coordinator can switch to manual mode and specify exact truck types and quantities
+- **Man-hours formula:** total cube ÷ difficulty divisor = total man-hours needed
+  - Difficulty levels: Easy (÷45), Moderate (÷38), Hard (÷32), Very Hard (÷28) — all admin-editable
+- **Crew calculation:** man-hours ÷ (targetDays × hoursPerDay) = men needed; raised to minimum if truck staffing rules require more
+- **Schedule toggle:** 1, 2, or 3 days — adjusts crew count and hours/man/day in real time
+- Optimization tip shown when a different day count would be more efficient
+
+#### Pricing & Billing
+- Crew rate: $/hr per crew member
+- Supervisor rate: $/hr (separate from crew; supervisor can count as driver — configurable)
+- Truck pricing: per day OR truck+driver hourly (per truck type, admin-configurable)
+- All rates are admin-configurable defaults; changes on an individual estimate affect that estimate only
+- Estimate breakdown shows: crew (with hrs ea.), supervisor, each truck type with pricing model label
+
+#### Other Features
 - Binding vs. non-binding estimate types
 - Estimate history — full change log from first contact through job completion
-- Mobile-friendly estimating (tablet/phone for in-home surveys)
+- Mobile-friendly (responsive web — same estimating tool on tablet/phone)
 - Virtual survey support (video call or photo upload)
 - Multiple estimate versions per job
 - Estimate PDF generation with company branding
 - Digital signature on estimates (legally binding under ESIGN Act)
 - Automatic conversion from estimate → quote → job
-- **Exceeds CompuMove:** AI item recognition from photos, real-time weight calculation
+- **Exceeds CompuMove:** Real-time cube-based calculation, configurable rules engine, admin rate management
 
 #### Estimate Ownership & Visibility
 - Salespeople build and send estimates for their assigned leads only
@@ -143,26 +225,25 @@ Every customer — household or commercial — has a persistent account profile 
 - **Claims History** — any damage or loss claims ever filed
 
 #### Customer Profile — Storage Section
-Every customer profile has a dedicated storage section that is always visible (not buried in a tab) if they have any active storage. This is a first-class section because storage is ongoing and recurring.
+The customer profile has a dedicated Storage tab. If the customer has active storage, it is surfaced prominently. The profile shows a **summary view only** — full item-level detail lives in the Warehouse & Storage module to keep the profile clean and uncluttered.
 
-**Per active storage account shows:**
-- Vault number(s) and location in warehouse
-- Vault size (e.g., 10×10, 5×10)
-- **Item inventory** — the actual itemized list of what is in storage, pulled from the Storage In job event's inventory. Shown as a scrollable item list with item name, qty, and any condition notes.
-- Date items entered storage
-- Estimated cubic footage in storage
-- Monthly billing rate and next billing date
-- Running total billed to date for this storage account
-- Status: Active / Pending Delivery / Closed
+**Per active storage account, the summary card shows:**
+- Vault number and warehouse location (row/section)
+- Vault size
+- Status badge (Active / Pending Delivery / Closed)
+- In storage since date and source job reference
+- Monthly rate, billed to date, next billing date
+- **3-stat summary:** total items count, total cubic feet, billed to date
+- No item-level breakdown — that lives in the Warehouse module
 
-**Actions directly from the storage section:**
-- **Schedule Haul Out** — creates a new Haul Out job event pre-filled with the customer's stored inventory and origin (warehouse)
-- **Schedule Partial Delivery** — select specific items from the inventory list to deliver; remainder stays in storage
-- **Add Items to Storage** — links a new Storage In event to the existing account
-- **View Full Vault Record** — links to the warehouse module detail for this vault
-- **Close Storage Account** — marks account closed after final haul out; archives the inventory
+**Quick actions on each storage card:**
+- **Schedule Haul Out** — primary action, creates a Haul Out job event
+- **Partial Delivery** — initiate delivery of selected items
+- **View Full Vault →** — navigates to the Warehouse & Storage module for full item inventory, condition notes, and vault management
 
-**If a customer has multiple storage accounts** (e.g., from different moves at different times), each account is shown as a separate card with its own inventory, billing, and actions.
+**If a customer has multiple storage accounts**, each appears as a separate card.
+
+**Design decision:** Item-level inventory is intentionally NOT shown on the customer profile — it would muddy the overview. The warehouse module is the right place for that depth.
 
 #### Recurring Customer Features
 - "Book Again" button — pre-fills a new estimate/job using previous move details as a starting point
@@ -482,6 +563,20 @@ DOT/FMCSA compliant document generation. All documents are auto-populated from t
 - PDF download and email delivery to customer
 - DOT/FMCSA required fields are enforced — system will not generate a BOL with missing required data
 - **Exceeds CompuMove:** Digital BOL and dispatch ticket on mobile — crew receives dispatch ticket on their portal automatically; no paper required
+
+#### Document List View
+- All documents across all jobs listed in one place, filterable by type, status, date, customer
+- Status badges: Draft, Sent to Crew, Signed, Completed, Pending Signature
+- Actions per document: View, Download PDF, Send to Customer
+- Draft documents show a prominent Send action
+
+#### Document Viewer
+- Full rendered document view with all auto-populated fields
+- Toolbar: Print, Download PDF, Send to Customer
+- Document sections: carrier/shipper info, origin/destination addresses, crew/equipment details, inventory summary table, valuation coverage, estimated charges breakdown, signature lines
+- Special instructions highlighted (orange) for crew visibility
+- Status indicator at the bottom (draft/signed/completed)
+- Back navigation to the document list and linked job reference
 
 ---
 
@@ -940,10 +1035,32 @@ Build in this sequence — each module depends on the one before it:
 
 - Full accounting / general ledger (use QuickBooks integration instead)
 - International / customs clearance workflows (Phase 2)
-- Fleet maintenance tracking (Phase 2)
 - Employee HR / payroll (use integration instead)
+- Native mobile apps (iOS/Android) — mobile is covered by responsive web
+
+**Note:** Fleet maintenance tracking was initially listed here but is now included in Module 5B — it was determined to be core operational functionality, not a Phase 2 item.
+
+---
+
+## Build Order Recommendation
+
+Build in this sequence — each module depends on the one before it:
+
+1. **Auth + Admin** (user accounts, roles, company setup, fleet config, staffing rules) — foundation
+2. **CRM + Leads + Customer Accounts** — first touchpoint; customer accounts link to all future modules
+3. **Estimating** — converts leads to jobs; requires rate config from Admin
+4. **Jobs + Rate Engine** — core record + pricing; requires customer accounts
+5. **Scheduling + Dispatch** — operations; requires jobs and crew management
+6. **BOL + Forms** — generated at dispatch; requires dispatch details
+7. **Billing + Invoicing** — money in; requires completed jobs
+8. **Warehouse + Storage** — storage clients; requires jobs for Storage In events
+9. **Reporting** — intelligence layer; requires data from all above
+10. **Internal Task System** — threads through all roles and modules
+11. **Automation** — customer-facing email/SMS; requires jobs and leads
+12. **Customer Portal** — customer-facing self-service
+13. **Integrations + API** — ecosystem connections
 
 ---
 
 *Document created: 2026-05-30*  
-*Next step: Decide tech stack and start Module 1 (Auth + Admin)*
+*Last audited: 2026-05-30 — prototype and blueprint synced*
