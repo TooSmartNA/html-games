@@ -1039,6 +1039,40 @@ These rules apply automatically during estimation and are visible on the estimat
 - Data import tools (migrate from CompuMove or spreadsheets)
 - Backup and export
 
+#### Deleted Records & Data Recovery System
+The moving industry is highly dependent on records. An accidental deletion can cause operational, legal, and billing problems. Nothing in this platform is permanently deleted without a deliberate multi-step admin process. The goal: make recovery easy, make permanent deletion hard.
+
+**Soft Delete — Everything Goes to the Recycle Bin First:**
+- Deleting any record (job, lead, invoice, customer, BOL, crew member, vehicle, document, etc.) moves it to a **Recycle Bin**, not permanent deletion
+- The Recycle Bin is accessible by Admin and Managers from Admin & Settings
+- Deleted records remain fully intact — all linked data, history, and documents are preserved
+- Records in the Recycle Bin are not visible in normal app views but are still queryable
+
+**Recycle Bin Features:**
+- Filterable by record type (Jobs, Leads, Invoices, Customers, Documents, Crew, Vehicles, etc.)
+- Searchable by name, ID, customer, date deleted
+- Shows: record name/ID, record type, deleted by (user), deleted on (date/time), reason (if provided)
+- **Restore** button — one click restores the record exactly as it was, including all linked data, back to its original location in the app
+- Restored records show a "Restored from trash on [date]" note in their activity log
+- **Permanent Delete** — available to Admin only, requires typing "DELETE" to confirm, and shows a warning listing all linked records that will also be permanently removed
+
+**Retention Policy:**
+- Soft-deleted records are retained in the Recycle Bin for **90 days** by default (configurable by Admin: 30/60/90/365 days or indefinite)
+- After the retention window, records are flagged for permanent deletion and Admin receives an alert before it happens
+- Financial records (invoices, payments, commission records) follow a longer retention — minimum 7 years regardless of deletion, consistent with business record-keeping requirements
+
+**Audit Trail — Separate from Recycle Bin:**
+- Every edit, status change, field update, and deletion is logged in the Audit Log with: who, what changed, from what value, to what value, timestamp
+- Audit Log is immutable — it cannot be edited or deleted even by Admin
+- Accessible in Admin & Settings → Audit Log
+- Filterable by user, record type, action type, date range
+- This provides a full history of every change ever made to any record, even if the record itself is deleted
+
+**Version History on Key Records:**
+- Job records, BOLs, estimates, and invoices keep a version history — every saved edit creates a snapshot
+- Users can view previous versions and restore any field to a prior value
+- Particularly important for BOLs and invoices where the final sent version must be preserved exactly
+
 ---
 
 ## Role-Based Access Control (RBAC)
