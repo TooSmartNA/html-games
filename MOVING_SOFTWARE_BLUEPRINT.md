@@ -661,17 +661,62 @@ Built for the future.
 ---
 
 ### MODULE 17 — Admin & Settings
-Platform configuration. Admin role only.
+Platform configuration. Admin role only. Philosophy: **everything has a sensible default, everything is overridable.** Admins should never need to touch code — all operational rules are configured here.
 
-- Company profile (logo, branding, DOT/MC numbers, insurance)
+#### Company & Branding
+- Company profile: name, logo, DOT/MC numbers, insurance, address, contact info
+- Document templates: BOL header, invoice branding, estimate letterhead
+
+#### User & Role Management
 - User accounts and role assignments
-- **Custom Role Builder** — create new roles from scratch, name them, assign per-module permissions via a visual permission matrix (Full / Read-Only / Hidden per module)
-- **Workflow Customization** — edit pipeline stages, rename them, reorder them, add or remove stages for both HHG and Commercial pipelines independently
+- **Custom Role Builder** — visual permission matrix (Full / Read-Only / Hidden per module), business line scope, data scope
+- **Workflow Customization** — pipeline stages per business line (add, rename, reorder, remove)
+
+#### Truck Type Configuration
+Admins define the full fleet type library. Each truck type has:
+- Name (e.g., "16ft Box Truck", "26ft Box Truck", "53ft Semi Trailer", "Cargo Van", "Sprinter Van")
+- **Cubic footage capacity** — used by the estimating engine to calculate truck requirements
+- Cost per day / cost per mile (for job costing)
+- Minimum crew requirement for this truck type (overrides global default)
+- Active / retired status
+
+**Default truck types shipped with the system (all editable):**
+
+| Type | Capacity | Min Crew |
+|------|----------|----------|
+| Cargo Van | 200 cu ft | 1 driver |
+| Sprinter Van | 350 cu ft | 1 driver |
+| 16ft Box Truck | 800 cu ft | 1 driver + 1 helper |
+| 26ft Box Truck | 1,500 cu ft | 1 driver + 1 helper |
+| 53ft Semi Trailer | 3,000 cu ft | 1 driver + 2 helpers |
+
+Admins can add custom truck types at any time (e.g., "16ft Liftgate", "Flatbed 40ft").
+
+#### Job Staffing Rules (Admin-Configurable Defaults)
+Rules that auto-populate crew requirements when a job is created. All can be overridden per job by a dispatcher.
+
+- **Minimum crew per truck** — e.g., every truck must have 1 driver + 1 helper. Set globally, overridable per truck type.
+- **Supervisor requirement** — toggle on/off globally. When on, every job automatically requires 1 supervisor (flagged separately from crew count, billed at supervisor rate). Can be marked "not required" on individual jobs by a dispatcher or coordinator.
+- **Supervisor pay rate** — set separately from standard crew rates; applies automatically when supervisor is on a job
+- **Minimum men per job** — regardless of truck, a job always needs at least N men (default: 2)
+- **Hours per working day assumption** — used in estimating (default: 8 hours). Adjustable.
+- **Estimating difficulty divisors** — the ÷N formula per difficulty level (Easy/Moderate/Hard/Very Hard) used to calculate man hours from cubic footage. All four values are editable.
+- **Truck capacity thresholds** — cubic footage ranges that trigger each truck type recommendation in the estimator. Editable.
+
+#### Billing & Rate Defaults
+- Default hourly rate by role (Lead, Driver, Helper, Supervisor, Warehouse) — fallback if no individual or team rate is set
+- Default truck cost rates per type
+- Default accessorial charges (stairs, long carry, elevator, shuttle)
+- Storage rate defaults by vault size
+
+#### Automation & Task Rule Builder
+- Task trigger rules (see Module 13A)
+- Customer-facing email/SMS automation sequences (see Module 14)
+
+#### System
 - Branch/location management (multi-location companies)
-- Notification preferences
-- Rate sheet management
-- Document template customization
-- Audit log (who changed what and when)
+- Notification preferences per role
+- Audit log (who changed what, when, from what value to what value)
 - Data import tools (migrate from CompuMove or spreadsheets)
 - Backup and export
 
