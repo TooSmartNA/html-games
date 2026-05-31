@@ -28,6 +28,28 @@ The front door of the business. Every job starts here.
 - Re-engagement workflows for cold leads
 - **Exceeds CompuMove:** AI-assisted lead scoring, automated review requests post-move
 
+#### Lead Assignment Workflow
+1. All inbound leads land in the **HHG Coordinator's queue** first — unassigned
+2. Coordinator reviews and **assigns each lead to a salesperson**
+3. Salesperson is notified and the lead appears in their personal pipeline
+4. Coordinator retains **full visibility** of every lead regardless of who owns it — pipeline stage, last activity, estimate status, next follow-up
+5. Salesperson has a **personal view** showing only their assigned leads
+6. As the salesperson progresses the lead (notes added, estimate sent, follow-up scheduled), the status updates **automatically** in the coordinator's view in real time
+7. Coordinator can **reassign** a lead to a different salesperson at any time
+8. Coordinator can add notes or tasks to any lead even if owned by a salesperson
+
+#### What Coordinators See
+- All leads across all salespeople in one master pipeline view
+- Filter by salesperson, stage, source, move date, lead age
+- Activity feed per lead: every call logged, email sent, estimate generated, stage change
+- Alert flags: leads with no activity in X days, estimates sent but no response, overdue follow-ups
+
+#### What Salespeople See
+- Only their own assigned leads
+- Their personal pipeline (same kanban/list but scoped to them)
+- Full detail on each of their leads: customer info, history, estimate tool, communication log
+- Cannot see other salespeople's leads or totals
+
 ---
 
 ### MODULE 2 — Estimating
@@ -46,6 +68,13 @@ The core sales tool. Must be fast, accurate, and usable in the field.
 - Digital signature on estimates (legally binding under ESIGN Act)
 - Automatic conversion from estimate → quote → job
 - **Exceeds CompuMove:** AI item recognition from photos, real-time weight calculation
+
+#### Estimate Ownership & Visibility
+- Salespeople build and send estimates for their assigned leads only
+- When an estimate is sent, the lead stage **automatically advances** to "Estimate Sent" — no manual update needed
+- Coordinator sees all estimates across all salespeople: sent date, version, value, customer response status
+- Coordinator can review, edit, or approve an estimate before it goes out (optional approval gate — configurable per company)
+- Estimate activity (opened, signed, declined) is logged automatically and visible to both the salesperson and coordinator
 
 ---
 
@@ -325,8 +354,8 @@ Every user is assigned a role. Roles control which modules appear in the sidebar
 |------|-------------|
 | **Admin** | Full access to everything — system config, all modules, all data |
 | **Owner / Manager** | Full access to all operational modules + reporting; no system config |
-| **Coordinator** | CRM, Estimating, Quotes, Jobs, Scheduling, BOL & Forms |
-| **Sales / Estimator** | CRM, Estimating, Quotes only |
+| **HHG Coordinator** | Full CRM (all leads, all salespeople), Estimating (all estimates), Quotes, Jobs, Scheduling, BOL & Forms. Assigns leads, monitors pipeline, sees all activity |
+| **Sales / Estimator** | CRM (own leads only), Estimating (own leads only), Quotes (own leads only). Cannot see other salespeople's leads or pipeline totals |
 | **Local Dispatch** | Jobs (local only), Scheduling, Crew & Mobile, BOL & Forms |
 | **LD Dispatch** | Jobs (long distance), Scheduling, Crew & Mobile, BOL & Forms, Long Distance module |
 | **Billing** | Billing & Invoicing, Rate Sheets, Reporting (financial reports only) |
