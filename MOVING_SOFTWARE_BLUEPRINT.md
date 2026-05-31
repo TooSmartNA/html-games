@@ -94,7 +94,7 @@ Every customer — household or commercial — has a persistent account profile 
 - **Active Jobs** — jobs currently in progress or dispatched
 - **Upcoming Jobs** — booked jobs with future dates
 - **Job History** — all completed, cancelled, and invoiced jobs with dates and values
-- **Storage Accounts** — any active storage vaults, billing cycle, monthly rate, since date
+- **Storage Accounts** — dedicated storage section on every customer profile (see below)
 - **Open Invoices** — unpaid invoices with amounts and aging
 - **Revenue Summary:**
   - Total lifetime revenue
@@ -104,6 +104,28 @@ Every customer — household or commercial — has a persistent account profile 
 - **Communication History** — all calls logged, emails sent, notes added, across all jobs and leads
 - **Documents** — all BOLs, estimates, invoices, and forms across all files in one place
 - **Claims History** — any damage or loss claims ever filed
+
+#### Customer Profile — Storage Section
+Every customer profile has a dedicated storage section that is always visible (not buried in a tab) if they have any active storage. This is a first-class section because storage is ongoing and recurring.
+
+**Per active storage account shows:**
+- Vault number(s) and location in warehouse
+- Vault size (e.g., 10×10, 5×10)
+- **Item inventory** — the actual itemized list of what is in storage, pulled from the Storage In job event's inventory. Shown as a scrollable item list with item name, qty, and any condition notes.
+- Date items entered storage
+- Estimated cubic footage in storage
+- Monthly billing rate and next billing date
+- Running total billed to date for this storage account
+- Status: Active / Pending Delivery / Closed
+
+**Actions directly from the storage section:**
+- **Schedule Haul Out** — creates a new Haul Out job event pre-filled with the customer's stored inventory and origin (warehouse)
+- **Schedule Partial Delivery** — select specific items from the inventory list to deliver; remainder stays in storage
+- **Add Items to Storage** — links a new Storage In event to the existing account
+- **View Full Vault Record** — links to the warehouse module detail for this vault
+- **Close Storage Account** — marks account closed after final haul out; archives the inventory
+
+**If a customer has multiple storage accounts** (e.g., from different moves at different times), each account is shown as a separate card with its own inventory, billing, and actions.
 
 #### Recurring Customer Features
 - "Book Again" button — pre-fills a new estimate/job using previous move details as a starting point
