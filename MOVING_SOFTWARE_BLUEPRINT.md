@@ -743,6 +743,53 @@ Full vault and item-level storage tracking across one or multiple warehouse loca
 - Inventory audit tools
 - **Exceeds CompuMove:** Barcode/QR scanning for vaults and items, warehouse map visual
 
+#### Storage Tracking Metrics — Customizable Per Warehouse
+Different storage types require different tracking units. Each warehouse can be configured to track any combination of the following:
+
+**Tracking Unit Types (admin-configurable per warehouse):**
+- **Vaults** — numbered vault units of defined sizes (10×10, 5×10, 10×20, etc.). Standard for household goods. Tracks: vault count, capacity in cu ft, occupied vs empty vs reserved.
+- **Square Footage** — raw floor space in sq ft. Common for commercial projects, overflow storage, and large-item staging. Tracks: total sq ft, allocated sq ft, available sq ft.
+- **Spaces / Bays** — numbered bays or parking spaces in the warehouse. Used for oversized items, vehicles, equipment. Tracks: total spaces, occupied spaces, available.
+- **Pallet Positions** — for warehouses that also do commercial/logistics storage. Tracks pallet in/out.
+- **Custom metric** — admin can define any named unit with a capacity number (e.g., "Container Slots," "Rack Sections")
+
+Multiple metrics can be active simultaneously in the same warehouse (e.g., a warehouse that has both vaults and open floor space tracks both).
+
+#### Built Vault Inventory & Capacity Planning
+Key operational insight: how many physical vaults exist (built but possibly empty), and are more needed?
+
+**Current Vault Inventory Status:**
+- **Built & Occupied** — vault exists, customer items inside, billing active
+- **Built & Empty** — vault exists physically but has no current occupant (revenue opportunity)
+- **Built & Reserved** — vault exists, no items yet, but reserved for an upcoming job
+- **Under Construction** — vault being built, not yet available
+- **Retired / Removed** — vault removed from floor plan
+
+Admin can see at a glance: how many physical vaults the warehouse has, how many are generating revenue, how many are sitting empty.
+
+**Capacity Projection (Demand Forecasting):**
+The system projects how many vaults will be needed over upcoming periods based on:
+- Confirmed upcoming storage-in jobs (already booked)
+- Historical storage intake rate (how many new storage accounts opened per month, trailing 6–12 months)
+- Current storage account churn rate (how many close per month)
+- Seasonal adjustment (configurable — e.g., summer months historically have 20% higher intake)
+
+**Projection output (per warehouse, per period):**
+- Current occupied: X vaults
+- Reserved (incoming booked): +Y vaults
+- Projected new demand (next 30/60/90 days): +Z vaults (based on historical rate)
+- Projected churn (storage accounts likely to close): −W vaults
+- **Net projected need at end of period:** X + Y + Z − W
+- Compared against total built vault count → shows surplus or shortage
+- If projected need approaches or exceeds capacity: alert generated for warehouse manager
+
+**Threshold alerts (admin-configurable):**
+- "Warn when projected occupancy exceeds 80% within 60 days"
+- "Alert when empty vaults drop below 3"
+- These alerts generate tasks for the warehouse manager
+
+**Exceeds CompuMove:** Multi-metric storage tracking, built vault inventory status, demand forecasting with configurable projection windows and thresholds.
+
 #### Incoming Shipments — 3rd Party Receiving
 Track all expected inbound deliveries before they arrive. This covers shipments coming from customers, carriers, van lines, or any 3rd party — not just MovePro crew moves.
 
