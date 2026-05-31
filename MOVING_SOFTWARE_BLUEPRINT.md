@@ -90,21 +90,56 @@ The core sales tool. Must be fast, accurate, and usable in the field.
 ---
 
 ### MODULE 4 — Jobs & Orders
-The central record for every move.
+The central record for every move. Built around a two-level hierarchy: a **File** (the customer relationship) and **Job Events** (individual service instances under that file).
 
-- Job record with full lifecycle tracking (lead → estimate → booked → dispatched → completed → billed)
+#### Job File Structure
+
+Every customer account gets a **File Reference Number** (e.g., `FILE-2026-0842`). The file is the top-level record — it persists for the life of the customer relationship. All job events, billing history, documents, and communications are attached to the file.
+
+Under each file, any number of **Job Events** can be created independently:
+
+| Event Type | Description | Billing Type |
+|-----------|-------------|-------------|
+| **Move** | Standard pickup and delivery | One-time |
+| **Packing** | Pack-only service, no transport | One-time |
+| **Storage In** | Items placed into warehouse storage | Triggers recurring billing |
+| **Storage Recurring** | Monthly storage charge | Recurring (auto-generated) |
+| **Haul Out** | Retrieval and delivery from storage | One-time |
+| **Partial Delivery** | Deliver portion of stored items | One-time |
+| **Return** | Return items to origin | One-time |
+| **Commercial Move** | Multi-day or project-based commercial | One-time or milestone |
+| **Additional Services** | Debris removal, returns, etc. | One-time |
+
+**Example lifecycle for one file:**
+1. `FILE-2026-0842` created from a booked lead
+2. Event 1 — Move (JOB-0842-01): crew dispatched, completed, invoiced
+3. Event 2 — Storage In (STO-0842-01): items vaulted, recurring billing starts
+4. Event 3 — Storage Recurring (REC-0842-01 through REC-0842-06): auto-generated monthly invoices
+5. Event 4 — Haul Out (JOB-0842-02): crew dispatched to deliver from storage, invoiced separately
+
+Each job event has its own:
+- Crew and truck assignment
+- Dispatch entry and schedule slot
+- BOL / delivery receipt
+- Invoice
+- Status lifecycle
+
+#### Master Jobs View
+- Searchable by: file reference number, customer name, job event ID, origin/destination address, move date, crew member, truck, salesperson, coordinator
+- Filterable by: status, event type, business line (HHG/Commercial), date range, assigned crew, billing type
+- Shows both the file-level summary and individual event rows (expandable)
+- Saved search templates for common views (e.g., "Today's dispatched jobs", "Open storage accounts", "Uninvoiced completed jobs")
+
+#### Other Job Record Features
 - Job types: Local, Long Distance, International, Commercial, Military, Government (GSA)
-- Household vs. commercial job distinction
-- Move date, origin address, destination address
 - Special instructions and access notes (elevator, stairs, parking, etc.)
-- Itemized inventory attached to job
+- Itemized inventory attached to each move event
 - Carton/packing material tracking
-- Valuation coverage selection
-- Job notes and internal comments
-- Customer communications log attached to job
-- Job status history with timestamps
-- Claims management (damage/loss claims against a job)
-- Actuals vs. estimates comparison (final weight, hours, materials vs. quoted)
+- Valuation coverage selection per event
+- Notes and internal comments (shared across the file)
+- Full status history with timestamps per event
+- Claims management (damage/loss claims linked to a specific event)
+- Actuals vs. estimates comparison per event
 
 ---
 
@@ -179,19 +214,26 @@ The pricing engine. Drives estimates, billing, and settlement.
 ---
 
 ### MODULE 9 — Billing & Invoicing
-Where the money comes in.
+Where the money comes in. Billing is event-level — each job event under a file generates its own invoice, but all invoices are visible at the file level for a complete account view.
 
-- Invoice generation from completed job
-- Actuals billing (final weight, hours, materials)
-- Partial payments and payment schedules
-- Storage recurring billing (monthly auto-invoicing)
-- Commission calculation per salesperson/job
+#### Billing Types
+- **One-time** — generated on completion of a move, haul-out, or service event
+- **Recurring** — auto-generated on a monthly cycle for permanent storage accounts; continues until storage is closed
+- **Milestone** — for commercial/multi-day projects, invoiced at defined project milestones
+
+#### Features
+- Invoice generation per job event (not per file — each event bills separately)
+- File-level billing summary — see all invoices across all events for one customer
+- Actuals billing (final weight, hours, materials vs. estimated)
+- Recurring storage invoices auto-generated on billing cycle date; admin can pause, adjust rate, or cancel
+- Partial payments and payment schedules tracked per invoice
+- Commission calculation per salesperson/event
 - Revenue distribution (for van line agents — split billing)
-- Accounts receivable tracking
-- Overdue invoice alerts and follow-ups
+- Accounts receivable tracking — filterable by file, event type, business line, aging bucket
+- Overdue invoice alerts and follow-up reminders
 - Invoice PDF with company branding
 - QuickBooks integration (export or sync)
-- **Exceeds CompuMove:** Stripe/payment link integration, automatic payment reminders
+- **Exceeds CompuMove:** Automatic recurring billing engine, full AR view across all event types per file
 
 ---
 
