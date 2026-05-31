@@ -193,6 +193,75 @@ Each job event has dispatcher-controlled resource fields:
 
 ---
 
+### MODULE 5A — Crew Management
+Manage all crew members, their roles, team assignments, and availability. Accessed by dispatchers, coordinators, and admins. A separate tab within the dispatch/operations section.
+
+#### Crew Member Profiles
+- Add / edit / deactivate crew members
+- Per-member fields: name, phone, email, role (Lead, Driver, Helper, Warehouse), certifications, hire date, notes
+- Profile photo
+- Active / inactive / terminated status
+- Current team assignment(s) — a crew member can belong to multiple teams
+
+#### Teams
+- Admin and dispatchers can create named teams (e.g., "Local Team A", "Local Team B", "LD Team 1", "Commercial Crew", "Warehouse")
+- Teams are not fixed — crew members can be moved between teams at any time
+- Default team types (configurable):
+  - **Local** — assigned to local HHG and commercial jobs
+  - **Long Distance (LD)** — drivers and helpers certified for interstate runs
+  - **Commercial** — commercial move specialists
+  - **Warehouse** — vault and storage operations only
+  - Custom teams can be created by admin
+- Team view on the dispatch board — filter the crew roster panel by team
+- A crew member can be flagged as multi-team (e.g., a driver who runs both local and LD)
+
+#### Availability & Scheduling
+- Set recurring availability per crew member (e.g., Mon–Fri, available 7am–5pm)
+- Mark individual days as: Available, Unavailable, PTO, Sick, Off
+- Availability feeds directly into the dispatch board — unavailable crew don't appear as assignable
+- Dispatch board shows each crew member's current day status in real time
+
+---
+
+### MODULE 5B — Fleet Management
+Manage all vehicles and equipment. Accessed by dispatchers, coordinators, admins, and the maintenance team.
+
+#### Vehicle Profiles
+- Add / edit / retire vehicles
+- Per-vehicle fields: unit number, nickname, type (26ft box, 16ft box, cargo van, flatbed, sprinter), make, model, year, VIN, license plate, DOT number, registration expiry, insurance expiry
+- Current status (see statuses below)
+- Assigned home location / branch (for multi-location companies)
+- Notes field
+
+#### Vehicle Statuses
+- **Active** — available for dispatch assignment
+- **Assigned** — currently on a job (auto-set when assigned in dispatch)
+- **In Maintenance** — being serviced; not available for dispatch; visible to maintenance team
+- **Out of Service** — major issue; not available; flagged for maintenance
+- **Reserved** — held for a specific upcoming job
+- **Retired** — removed from active fleet; kept in records
+
+Dispatch board only shows Active and Reserved vehicles as assignable. All other statuses are blocked from assignment with a visible reason.
+
+#### Maintenance Tab
+A dedicated view for the maintenance team (and admins) — separate from the dispatch board.
+
+- List of all vehicles currently In Maintenance or Out of Service
+- Per-vehicle maintenance record:
+  - Issue description and date reported
+  - Who reported it (crew member, dispatcher, or admin)
+  - Current repair status: Reported → In Progress → Awaiting Parts → Complete
+  - Assigned mechanic / shop (internal or external)
+  - Estimated return-to-service date
+  - Repair notes and history log
+- Maintenance team can update repair status and add notes
+- When status is set to Complete, dispatcher is notified and vehicle status returns to Active
+- Alerts: vehicles with registration or insurance expiring within 30 days
+- Any crew member can **report a vehicle issue** from the field — flagged to dispatcher and maintenance team immediately
+- **Exceeds CompuMove:** Full maintenance workflow with repair status tracking and expiry alerts
+
+---
+
 ### MODULE 6 — Crew & Mobile Operations
 A separate, minimal-access portal for crew members. Accessed via the same web app on a phone or tablet — no separate native app required. Crew members log in and see only what they need for their workday.
 
@@ -468,7 +537,8 @@ These ship as defaults but can be edited, renamed, or replaced by the Admin.
 | **LD Dispatch** | Both | Jobs (long distance), Scheduling, Crew & Mobile, BOL & Forms, Long Distance module |
 | **Billing** | Both | Billing & Invoicing, Rate Sheets, financial Reporting only |
 | **Warehouse** | Both | Warehouse & Storage only |
-| **Crew / Driver** | Both | Crew & Mobile view only (daily jobs, signatures, photos) |
+| **Crew / Driver** | Both | Crew & Mobile view only (daily jobs, clock-in, signatures, photos, vehicle issue reporting) |
+| **Maintenance** | Both | Fleet Management — maintenance tab only (vehicle repair status, notes, return-to-service updates). No access to jobs, crew, or financial data. |
 | **Customer** | Both | Customer Portal only |
 
 ### Custom Role Builder (Admin Only)
