@@ -221,6 +221,49 @@ Manage all crew members, their roles, team assignments, and availability. Access
 - Availability feeds directly into the dispatch board — unavailable crew don't appear as assignable
 - Dispatch board shows each crew member's current day status in real time
 
+#### Pay Rates & Commissions
+Pay rates are set and managed by Admin only. They are used exclusively for internal job costing and actuals calculation — this is not a payroll processing system.
+
+**Rate Hierarchy (highest priority wins):**
+1. **Individual rate** — set directly on a crew member's profile; overrides everything
+2. **Team/category default rate** — set on a team (e.g., all Local helpers default to $18/hr); applies to any member without an individual rate
+3. **Role default rate** — set on a role type (e.g., all Leads default to $22/hr); fallback if no team rate is set
+
+This means you can set a company-wide default for each role, override it per team, and further override it per individual — with no limit on customization.
+
+**Pay Rate Types per crew member:**
+- **Hourly** — standard rate per hour worked (pulled from timesheet clock-in/out)
+- **Flat per job** — fixed amount per job event regardless of hours
+- **Hourly + flat bonus** — hourly rate plus a fixed bonus per completed job
+
+**Driver Commission (additional layer, optional per driver):**
+- **Flat commission per job** — fixed dollar amount when the driver completes a job event
+- **Percentage of job revenue** — percentage of the job's billed value (e.g., 5% of invoice)
+- **Per-mile rate** — for LD drivers, a rate per mile driven (pulled from job origin/destination distance)
+- **Combination** — e.g., hourly + per-mile, or flat + commission percentage
+- Commission settings are per-driver and can be set independently from the base hourly rate
+
+**Vehicle/Truck Cost Rates:**
+- Each vehicle in the fleet has an assigned **cost-per-hour** or **cost-per-mile** rate (set in Fleet Management)
+- Used for job costing only — not billed to customer directly unless added as an accessorial
+
+#### Automatic Job Actuals Calculation
+When a job event is completed and timesheets are submitted, the system auto-calculates the **actual cost** of the job:
+
+```
+Job Actual Cost =
+  Σ (crew member hours × their effective hourly rate)
+  + Σ (crew member commissions earned)
+  + Σ (truck hours or miles × vehicle cost rate)
+  + materials used (packing supplies at cost)
+```
+
+This gives dispatchers and managers a real **profit/loss per job event** and per file:
+- Estimated revenue (from invoice) vs. actual labor + vehicle cost
+- Margin per job visible in reporting
+- Actuals are finalized once all timesheets for the job are approved
+- Timesheet discrepancies (crew clocked more hours than estimated) are flagged for dispatcher review before actuals are locked
+
 ---
 
 ### MODULE 5B — Fleet Management
@@ -424,17 +467,23 @@ The intelligence layer. Over 250 report types targeted.
 
 **Operations Reports:**
 - Jobs per day/week/month
-- Crew utilization
-- Truck utilization
-- Actuals vs. estimates variance
+- Crew utilization (hours worked vs. available by crew member and team)
+- Truck utilization (hours/miles per vehicle)
+- Actuals vs. estimates variance (hours, crew size, materials)
 - Claims rate
+- Timesheet summary by crew member and period
+- Crew hours by job type (local, LD, commercial, warehouse)
 
 **Financial Reports:**
 - Revenue by job type (local, LD, storage, commercial)
 - Accounts receivable aging
-- Commission reports
+- Commission reports by driver/salesperson
 - Storage revenue
-- Profit/loss per job
+- **Profit/loss per job event** — revenue vs. actual labor + vehicle + materials cost
+- **Profit/loss per file** — rolled up across all events for a customer
+- **Labor cost by crew member** — hours × rate, total cost per period
+- **Labor cost by team** — aggregate cost per team per period
+- Margin analysis by job type, business line, and salesperson
 
 **Custom Report Builder:**
 - Export any data set to spreadsheet
