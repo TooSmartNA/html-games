@@ -329,11 +329,12 @@ Built for the future.
 ---
 
 ### MODULE 17 — Admin & Settings
-Platform configuration.
+Platform configuration. Admin role only.
 
 - Company profile (logo, branding, DOT/MC numbers, insurance)
 - User accounts and role assignments
-- Permission levels per role (see Role-Based Access Control section)
+- **Custom Role Builder** — create new roles from scratch, name them, assign per-module permissions via a visual permission matrix (Full / Read-Only / Hidden per module)
+- **Workflow Customization** — edit pipeline stages, rename them, reorder them, add or remove stages for both HHG and Commercial pipelines independently
 - Branch/location management (multi-location companies)
 - Notification preferences
 - Rate sheet management
@@ -346,36 +347,67 @@ Platform configuration.
 
 ## Role-Based Access Control (RBAC)
 
-Every user is assigned a role. Roles control which modules appear in the sidebar, which actions are available, and what data is visible. Roles are configured per company in Admin & Settings.
+Every user is assigned a role. Roles control which modules appear in the sidebar, which actions are available, and what data is visible. Roles are fully customizable by Admin.
 
-### Roles
+### Default System Roles
 
-| Role | Description |
-|------|-------------|
-| **Admin** | Full access to everything — system config, all modules, all data |
-| **Owner / Manager** | Full access to all operational modules + reporting; no system config |
-| **HHG Coordinator** | Full CRM (all leads, all salespeople), Estimating (all estimates), Quotes, Jobs, Scheduling, BOL & Forms. Assigns leads, monitors pipeline, sees all activity |
-| **Sales / Estimator** | CRM (own leads only), Estimating (own leads only), Quotes (own leads only). Cannot see other salespeople's leads or pipeline totals |
-| **Local Dispatch** | Jobs (local only), Scheduling, Crew & Mobile, BOL & Forms |
-| **LD Dispatch** | Jobs (long distance), Scheduling, Crew & Mobile, BOL & Forms, Long Distance module |
-| **Billing** | Billing & Invoicing, Rate Sheets, Reporting (financial reports only) |
-| **Warehouse** | Warehouse & Storage module only |
-| **Crew / Driver** | Crew & Mobile view only (daily job list, signatures, photos) |
-| **Customer** | Customer Portal only (external-facing, read + limited actions) |
+These ship as defaults but can be edited, renamed, or replaced by the Admin.
+
+| Role | Business Line | Description |
+|------|--------------|-------------|
+| **Admin** | Both | Full access to everything — all modules, all data, system config, role management |
+| **Owner / Manager** | Both | Full operational access + reporting across HHG and Commercial; no system config |
+| **HHG Coordinator** | HHG | Full HHG CRM, all leads/estimates across salespeople, HHG Jobs, Scheduling, BOL & Forms |
+| **HHG Sales / Estimator** | HHG | HHG CRM (own leads only), Estimating (own leads only), Quotes (own leads only) |
+| **Commercial Coordinator** | Commercial | Full Commercial CRM, all commercial leads/estimates, Commercial Jobs, Scheduling |
+| **Commercial Sales / Estimator** | Commercial | Commercial CRM (own leads only), Estimating and Quotes (own leads only) |
+| **Local Dispatch** | Both | Jobs (local), Scheduling, Crew & Mobile, BOL & Forms |
+| **LD Dispatch** | Both | Jobs (long distance), Scheduling, Crew & Mobile, BOL & Forms, Long Distance module |
+| **Billing** | Both | Billing & Invoicing, Rate Sheets, financial Reporting only |
+| **Warehouse** | Both | Warehouse & Storage only |
+| **Crew / Driver** | Both | Crew & Mobile view only (daily jobs, signatures, photos) |
+| **Customer** | Both | Customer Portal only |
+
+### Custom Role Builder (Admin Only)
+- Admin can create entirely new roles with any name
+- Per-module permission is set via a visual matrix: **Full / Read-Only / Hidden**
+- Business line scope can be set per role: **HHG only / Commercial only / Both**
+- Data scope can be set: **Own records only / All records in their business line / All records**
+- Changes to a role apply immediately to all users assigned that role
 
 ### Permission Levels Per Module
 
-Each role gets one of three permission levels per module:
 - **Full** — read, write, create, delete
 - **Read-Only** — view only, no edits
-- **Hidden** — module does not appear in navigation
+- **Hidden** — module does not appear in navigation at all
+
+### HHG vs. Commercial Separation
+
+The platform has two distinct business lines that operate in parallel:
+
+**Separation rules:**
+- When a job/lead is created, it is designated **HHG** or **Commercial** — this cannot be changed after creation
+- HHG roles see only HHG pipelines, dashboards, and jobs
+- Commercial roles see only Commercial pipelines, dashboards, and jobs
+- A user can be assigned a role that spans both (e.g., Admin, Owner, Dispatcher, Billing) — they see both
+- Each business line has its own **dashboard**, **CRM pipeline**, and **reporting views**
+
+**Shared resources (visible to both):**
+- Crew & Drivers — scheduling and dispatch pulls from one shared workforce pool
+- Trucks & Equipment — shared fleet, visible to both dispatch roles
+- Warehouse & Storage — shared facility
+- Billing & Invoicing — single AR view but filterable by business line
+
+**Workflow customization:**
+- HHG pipeline stages and Commercial pipeline stages are configured **independently**
+- Admin can add, remove, rename, and reorder stages for each business line separately
+- Automation rules and follow-up sequences are also configured per business line
 
 ### Key Rules
-- Sidebar navigation is dynamically rendered based on the logged-in user's role
-- Data scoping: Local Dispatch only sees local jobs; LD Dispatch only sees long-distance jobs
-- Admin role is required to create/edit users, roles, and company settings
-- Audit log captures all actions with user + timestamp regardless of role
-- Roles are customizable per company — the above are defaults, not locked-in
+- Sidebar navigation renders dynamically based on role + business line scope
+- All data reads and writes are scoped server-side — UI hiding alone is not the security boundary
+- Admin is the only role that can create/edit roles, users, and workflows
+- Audit log captures every action with user, role, timestamp, and record regardless of role
 
 ---
 
