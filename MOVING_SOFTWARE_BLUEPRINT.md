@@ -738,6 +738,96 @@ Full vault and item-level storage tracking.
 
 ---
 
+### MODULE 10A — Claims Management
+Handles all damage and loss claims from initial filing through settlement. The claims flow is determined by the valuation coverage the customer selected at booking — this must be clearly recorded on the BOL and job record so the correct process is followed.
+
+#### Valuation Coverage Types
+Valuation coverage defines the carrier's liability and drives the entire claims process. Each company can configure their own coverage options in Admin — the following are the defaults shipped with the system.
+
+**Default Coverage Options (all configurable by Admin):**
+
+| Coverage Type | Default Rate | Carrier Liability | Customer Cost |
+|--------------|-------------|------------------|--------------|
+| **Released Value — Basic** | $0.10/lb per article | Carrier pays max $0.10 × item weight | Free |
+| **Released Value — Standard** | $0.60/lb per article (FMCSA minimum) | Carrier pays max $0.60 × item weight | Free |
+| **Full Value Protection** | Declared shipment value | Carrier responsible for repair, replacement at current market value, or cash settlement | Premium charged (configurable, e.g., $0.60 per $100 of declared value) |
+| **Third-Party / Customer's Own Insurance** | N/A — handled by customer's insurer | Carrier liability is released; customer's insurer handles claim | Customer arranges separately |
+
+- The customer selects their coverage option at time of estimate/booking
+- Their selection is locked to the job and printed clearly on every BOL and estimate
+- If no selection is made, the system defaults to Released Value — Standard (FMCSA minimum)
+- A different default can be configured by Admin (some companies default to Full Value Protection)
+
+**Admin Customization of Coverage Options:**
+- Add custom coverage tiers (e.g., a company's proprietary enhanced coverage at a custom rate)
+- Edit the per-lb rate, premium pricing, and liability description for each tier
+- Mark any tier as inactive to remove it from customer selection
+- Set the company default (what customers get if they don't actively choose)
+- Coverage option names and descriptions are editable to match the company's language
+
+#### Claim Intake
+- Claims can be filed by: customer (via portal), salesperson on behalf of customer, or claims department directly
+- Required at intake: job ID, customer, date of move, description of damage/loss, items affected, coverage type on file
+- System automatically pulls the coverage type from the job record — cannot be changed after the fact
+- Photos can be attached at intake (required for full value protection claims)
+- Crew exception reports from field (filed during move) are automatically linked to the job and flagged for claims review
+
+#### Claims Flow by Coverage Type
+
+**Released Value Flow ($0.10/lb or $0.60/lb):**
+1. Claim filed — damage/loss described and items listed
+2. Claims team verifies item was listed on inventory/BOL
+3. Claims team records weight of damaged/lost item(s) (from inventory or estimate)
+4. Settlement calculated automatically: weight × coverage rate (e.g., 15 lbs × $0.60 = $9.00)
+5. Settlement offer sent to customer
+6. Customer accepts or disputes
+7. If accepted: settlement issued (check, credit, or deduction from balance)
+8. If disputed: escalate to manager review
+
+**Full Value Protection Flow:**
+1. Claim filed — damage/loss described with photos
+2. Claims team verifies declared shipment value on BOL
+3. Claims team assesses: repair cost vs. replacement value vs. cash settlement
+4. May require: third-party appraiser, repair estimate, replacement cost research
+5. Settlement offer: whichever is lowest of (repair cost / replacement at depreciated value / declared value proportion)
+6. Customer accepts or disputes
+7. If accepted: settlement issued
+8. If disputed: formal dispute process, may involve mediator
+
+**Third-Party Insurance:**
+1. Claim filed — system records it but routes customer to their own insurer
+2. Company provides BOL, inventory list, and any documentation requested
+3. No carrier settlement — claim handled externally
+4. Status tracked in system for record-keeping
+
+#### Claims Record — What It Contains
+- Claim ID, linked job ID, file reference, customer
+- Coverage type (pulled from job — immutable after job date)
+- Date of move, date claim filed, days since move
+- Claim status: Filed → Under Review → Settlement Offered → Accepted / Disputed → Closed
+- Claimant contact info
+- Damaged/lost items: item name, weight, estimated value, photos
+- Calculated settlement amount (auto-calculated for released value; manual entry for full value)
+- Notes and communication log (internal + customer-facing)
+- Documents: original BOL, inventory list, photos, appraisals, settlement letter
+- Assigned to: which claims team member is handling it
+- Resolution: settlement amount paid, date closed, method (check/credit/deduction)
+
+#### Claims Dashboard
+- Open claims queue — sorted by status and filing date
+- Overdue alerts (claims not responded to within X days — configurable SLA)
+- Claim volume by coverage type
+- Average settlement amount by coverage type
+- Claims rate (claims per 100 jobs) — tracked for quality control
+- Total claims liability outstanding
+
+#### Claims Team Role
+- **Claims** role in RBAC: access to all jobs (read-only), full claims module access, can request BOL and inventory from any job, cannot edit job records directly
+- Claims manager can override settlement amounts and close disputes
+- All settlement decisions logged with who approved and when
+
+---
+
 ### MODULE 11 — Commercial Moving
 Separate workflows for commercial clients.
 
