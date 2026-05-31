@@ -22,12 +22,12 @@ The prototype is a visual/interactive frontend built in Next.js with fake data. 
 | Screen | Route | Status |
 |--------|-------|--------|
 | Dashboard | `/` | ✅ Built — KPI cards (all linked), recent jobs/leads, alerts |
-| CRM Pipeline | `/crm` | ✅ Built — pipeline kanban + task-driven view with urgency system; both cards link to lead detail |
-| Lead Detail | `/crm/[id]` | ✅ Built — Overview (move details, salesperson assignment), Attachments (file list, upload from PC, BOL placeholder), Activity log |
+| CRM Pipeline | `/crm` | ✅ Built — **fully live state**: create new leads (slide-in form with name, phone, email, origin, destination, move date, estimated rooms, source, salesperson, starting stage, notes, Hot Lead toggle), advance any lead through stages via "→ Next Stage" button or stage dropdown on each card; pipeline value/counts update live; persisted to localStorage so detail-page edits reflect on return |
+| Lead Detail | `/crm/[id]` | ✅ Built — **fully functional**: reads lead from localStorage (works for newly created leads too); clickable stage badge dropdown; active task banner with Complete button (auto-advances stage, logs to activity); Mark Booked button → View Jobs link; salesperson dropdown persists; Hot Lead toggle; estimated value editable inline; post note → activity feed with timestamp; all changes sync back to localStorage |
 | Estimating | `/estimating` | ✅ Built — flat item list, truck allocation engine, pricing model toggle, admin rate config, supervisor-as-driver rule; **Generate Quote button** saves estimate to quotes module |
 | Quotes & Proposals | `/quotes` | ✅ Built — quote lifecycle (Draft → Sent → Viewed → Accepted/Declined/Expired), expandable line items table, send/duplicate/convert-to-job actions, Templates tab; receives pre-filled drafts from Estimator via Generate Quote |
 | Jobs List | `/jobs` | ✅ Built — list with type/status badges, links to detail |
-| Job Detail | `/jobs/[id]` | ✅ Built — 5 tabs: Overview, Inventory, Documents, Activity; **Billing tab** shows full actuals review (crew timesheets with clock-in/out, flagged overtime, truck, materials, estimated vs actual comparison table, Generate Invoice button) |
+| Job Detail | `/jobs/[id]` | ✅ Built — **6 tabs**: Overview, Inventory, Documents, **Timesheets** (crew-facing: clock in/out with no rates or billing), **Billing** (management: full clock records with rates, actuals vs estimate, Generate Invoice), Activity; both Timesheets and Billing share the same live clock state |
 | Scheduling & Dispatch | `/dispatch` | ✅ Built — month/week/day views, drag-and-drop crew assignment, truck dropdown, unassign via X, date change modal, **dispatcher men count override with +/− controls and "Adjusted" flag** |
 | Crew & Fleet Management | `/crew` | ✅ Built — Crew Members tab (add/edit/remove, availability toggle, absence log with types/dates, restriction tags); Fleet tab (add/edit/remove, inline status change with note, maintenance surfaced first) |
 | Billing & Invoicing | `/billing` | ✅ Built — 4 tabs: Pending Review (**3 billing paths**: Bill Estimate / Bill Actual & Send / Edit Invoice with editable line items), All Invoices (filterable, expandable rows, Mark Paid), AR (aging buckets + by-customer), Recurring Billing |
@@ -36,7 +36,7 @@ The prototype is a visual/interactive frontend built in Next.js with fake data. 
 | Long Distance | `/longdistance` | ✅ Built — shipment tracker with status filter and expandable detail (billing, agents, action buttons), agent network with contact cards and ratings, interactive CZAR-LITE pricing calculator with accessorial charge reference |
 | Customer Accounts | `/customers` | ✅ Built — list with tags, revenue, ratings |
 | Customer Profile | `/customers/[id]` | ✅ Built — stats row, pinned note, Jobs / Storage / Invoices / Communications tabs |
-| Warehouse & Storage | `/warehouse` | ✅ Built — 5 tabs: Incoming Shipments (spread date support, receiving workflow, overdue alerts), Vault Directory (full item inventory, capacity fill bar, per-vault actions), Delivery Orders, Capacity & Metrics (vault states, sq ft, SIT bays, 30/60/90 day demand projection), Manage Warehouses |
+| Warehouse & Storage | `/warehouse` | ✅ Built — 5 tabs: Incoming Shipments (**live scheduling form**: shipment name, customer, warehouse, vault, arrival type toggle specific/spread, receiving staff, contents, instructions; adds to Expected group instantly), Vault Directory, Delivery Orders, Capacity & Metrics, Manage Warehouses |
 | Reporting | `/reporting` | ✅ Built — Explorer tab (cascading filters, live stat cards), Sales, Operations, Financial, Custom Report Builder tabs |
 | Tasks | `/tasks` | ✅ Built — Open/Completed tabs, urgency grouping (Overdue/Today/Upcoming), inline edit panel (priority, assignee, due date, notes, undo complete), Auto Rules tab |
 | Automation | `/automation` | ✅ Built — sequence list with status, expandable step timeline, pause/resume toggle, edit step inline, add step, new sequence form |
@@ -162,20 +162,53 @@ The CRM has two distinct views. Admin sets the company default; individual users
 - Full detail on each of their leads: customer info, history, estimate tool, communication log
 - Cannot see other salespeople's leads or totals
 
-#### Lead Detail Page
-Clicking any lead card (in either pipeline or task view) opens the full lead file.
+#### New Lead Intake
+When a new lead comes in (phone call, web form, third-party source), the coordinator or salesperson creates it via the **New Lead** form. Fields collected at intake:
 
-**Header:**
-- Contact name, lead ID, hot flag, pipeline stage badge
+- **Contact Name** (required) — individual or company
+- **Phone** and **Email**
+- **Origin** and **Destination** city (required) — the two pieces of info needed to understand the job
+- **Estimated Move Date**
+- **Estimated Rooms of Furniture** — a quick room count for initial ballpark; not a dollar value at this stage (the dollar estimate comes from the Estimating tool after inventory is built)
+- **Lead Source** — Website, HireAHelper, Moving.com, MovingHelp, Thumbtack, Angi, Referral, Phone Call, Other
+- **Salesperson assignment** — assign immediately or leave Unassigned for coordinator to assign
+- **Starting stage** — usually New Lead, but can be dropped into any stage if already contacted
+- **Notes** — any initial context from the call
+- **Hot Lead flag** — priority flag visible on the kanban card
+
+#### Pipeline Stage Advancement
+Each kanban card has two stage controls at the bottom:
+- **Primary button** — "→ [Next Stage]" advances one step forward instantly
+- **Chevron dropdown** — jump to any specific stage directly (useful for leads that progress quickly or skip stages)
+
+When a stage changes: the task label and urgency update automatically to match the new stage's expected next action. Stage changes also persist to localStorage so the detail page reflects them and vice versa.
+
+**Task view:** Each lead row has a "Done →" button that advances the lead to the next stage and moves it down the priority list.
+
+#### Lead Detail Page
+Clicking any lead card (in either pipeline or task view) opens the full lead file. **All fields are interactive** — changes persist immediately and reflect back on the pipeline card.
+
+**Header controls:**
+- Contact name, lead ID
+- **Hot Lead toggle** — click the flame badge to toggle on/off
+- **Stage dropdown** — click the stage badge to open a dropdown and jump to any stage directly; logs the change to activity
 - Contact info strip (phone, email, origin → destination, move date)
-- Active task banner — amber strip showing the current task, due date, and a Complete button (always visible, impossible to miss)
-- Open Estimator button (links to estimating tool pre-loaded for this lead)
-- Mark Booked button
+- **Open Estimator** — links to the estimating tool
+- **Mark Booked** button — jumps to Booked stage; becomes "View Jobs →" link once booked
+
+**Active task banner:**
+- Amber strip at the top — shows the current task for the active stage, due date, and a Complete button
+- Clicking Complete: marks the task done, auto-advances to the next stage, logs "Task completed: [name]" to the activity feed
+- Banner updates color/icon based on urgency (amber = today, red = overdue, green = done)
+- Shows "Moving to [next stage]…" briefly during the transition
+
+**Quick stage advance:**
+- Below the task banner, a "Next stage: → [Stage Name]" shortcut for jumping forward without going through the task flow
 
 **Tabs:**
-- **Overview** — origin/destination addresses with access notes, move date + flexibility, estimated value, services requested, customer notes; salesperson assignment dropdown (change directly from this page); coordinator, source, created date
-- **Attachments** — all files associated with this lead/job: estimates, BOL (once generated), signed paperwork, any uploaded documents; Upload File button to attach from PC; BOL placeholder card shown until lead is booked and dispatched
-- **Activity** — full chronological log of all actions (notes, emails, status changes, assignments); note input to log calls or updates
+- **Overview** — origin/destination addresses with access notes, move date + flexibility, **estimated rooms** (editable inline — click value to edit), services requested, customer notes; salesperson assignment dropdown; coordinator, source, created date
+- **Attachments** — all files: estimates, BOL (once generated), signed paperwork, uploads; BOL placeholder shown until booked
+- **Activity** — full chronological log; note input field (post with Enter or button); all stage changes, task completions, and salesperson changes auto-logged with timestamp
 
 **Design principle:** Lead detail is the salesperson's primary workspace — everything they need to progress the lead is on this one page without navigating away.
 
@@ -392,6 +425,54 @@ Each job event has its own:
 - Filterable by: status, event type, business line (HHG/Commercial), date range, assigned crew, billing type
 - Shows both the file-level summary and individual event rows (expandable)
 - Saved search templates for common views (e.g., "Today's dispatched jobs", "Open storage accounts", "Uninvoiced completed jobs")
+
+#### Job Detail — Tabs
+The job detail page is organized into six tabs, each serving a distinct audience:
+
+| Tab | Audience | What it shows |
+|-----|----------|---------------|
+| **Overview** | All roles | Customer, addresses, crew/truck assignment, services, special instructions |
+| **Inventory** | All roles | Room-by-room item list with quantities |
+| **Documents** | All roles | BOL, estimate, order for service — view and download |
+| **Timesheets** | Crew + Management | Clock-in/out interface — crew-facing, **no pay rates or billing totals** |
+| **Billing** | Management only | Full clock records with rates, actuals vs. estimate, Generate Invoice |
+| **Activity** | All roles | Full chronological log of all events on the job |
+
+#### Timesheets Tab — Crew-Facing Clock System
+The Timesheets tab is purpose-built for crew members in the field. It shows everything they need to clock their time and nothing they should not see.
+
+**What it shows (crew access):**
+- Job context strip: job ID, customer, date/time window, origin → destination, truck — confirm you're on the right job
+- One card per assigned crew member: name, role (Lead/Helper/Driver), Lead tag where applicable
+- Clock In time column, Clock Out time column, Elapsed/Total Hours column
+- **Large Clock In button (green)** — easy to tap on a phone or tablet
+- Live elapsed timer while clocked in (hours : minutes : seconds)
+- **Clock Out button (red)** when active — freezes the record on click
+- Hours shown when done (no rate, no dollar amount anywhere on this tab)
+- Summary footer: crew count, total hours across all members, View Timesheet button
+
+**What it intentionally omits:**
+- Pay rates per crew member
+- Labor cost calculations
+- Actuals vs. estimate comparison
+- Invoice generation
+- Billing totals of any kind
+
+**Permission design:** In production, the Crew/Driver role would only have access to this tab — the Billing tab is Hidden from their permission matrix. This is set in Admin → Users & Roles.
+
+#### Billing Tab — Management Actuals View
+The Billing tab reads from the exact same clock records as the Timesheets tab — one shared state, two different lenses.
+
+**Additional data the Billing view adds:**
+- Pay rate per crew member (pulled from crew master data by name — not manually entered)
+- Labor cost per person (hours × their specific rate)
+- Running labor subtotal updating live while anyone is active
+- Overrun flag (amber) when a crew member clocks more than the estimated hours + 15-min buffer
+- Actuals vs. Estimate comparison table (Labor / Truck / Materials with Estimated, Actual, Variance columns)
+- Generate Invoice button (locked until all crew clocked out)
+- Printable timesheet document with full detail including rates and subtotals
+
+**Rate source:** Each crew member's rate is looked up by name from the crew master data (same rates shown in Crew & Fleet Management). If a rate changes in crew management, it flows through here automatically — no rate tables to maintain separately on the job record.
 
 #### Other Job Record Features
 - Job types: Local, Long Distance, International, Commercial, Military, Government (GSA)
@@ -873,6 +954,22 @@ The system projects how many vaults will be needed over upcoming periods based o
 
 #### Incoming Shipments — 3rd Party Receiving
 Track all expected inbound deliveries before they arrive. This covers shipments coming from customers, carriers, van lines, or any 3rd party — not just MovePro crew moves.
+
+**Scheduling a New Incoming Shipment:**
+The "Schedule Incoming" button on the Incoming Shipments tab opens an inline form (no separate page). Fields:
+- **Shipment name / reference** (required) — e.g., "Johnson Estate — POD from Allied Van Lines"
+- **Customer name** (required) and **file reference**
+- **Shipper / carrier** — who is delivering (van line, FedEx Freight, customer self-drop, etc.)
+- **Warehouse location** — dropdown of active warehouse locations
+- **Target vault / staging area**
+- **Arrival type toggle:**
+  - *Specific Date + Time* — exact date picker + time window field (e.g., "10:00 AM – 12:00 PM")
+  - *Date Window / Spread* — earliest and latest date pickers for when the exact day isn't confirmed
+- **Receiving staff** — who is responsible for processing it on arrival
+- **Contents description** — brief summary of what's expected
+- **Special instructions** — fragile, oversized, liftgate required, temperature-sensitive, etc.
+
+On submit: the shipment appears immediately at the top of the Expected group, fully expandable with the standard receiving workflow (Mark Arrived → Process Receiving → Generate Receiving Report).
 
 **Scheduled Incoming Shipments:**
 - Each incoming shipment has:
@@ -1379,14 +1476,21 @@ The moving industry is highly dependent on records. An accidental deletion can c
 **Inline Undo Toast — First Line of Defense:**
 Before anything reaches the Recycle Bin, the user gets an immediate "Undo" opportunity right where they are.
 
-1. User clicks any Delete/Remove button anywhere in the app
+1. User clicks any Delete/Remove/Disconnect/Revoke button anywhere in the app
 2. The item disappears from the UI immediately (fast, feels responsive)
 3. A **toast notification** appears at the bottom of the screen: *"[Item name] deleted. Undo"* with a 5-second countdown bar
 4. If the user clicks **Undo** → item reappears instantly, no Recycle Bin involved
-5. If the toast expires (5 seconds) → item moves silently to the Recycle Bin
-6. The toast also shows a "View in Recycle Bin" link for easy access after it expires
+5. If the toast expires (5 seconds) → item moves silently to the Recycle Bin (for soft-delete actions) or the action is finalized (for non-delete actions like disconnect/revoke)
+6. For soft-delete actions: the toast also shows a "View in Recycle Bin" link; for non-delete actions (integrations disconnect, API key revoke, webhook delete): the "View bin" link is omitted since these don't go to the Recycle Bin
 
-This applies to every delete action across the platform: tasks, crew members, vehicles, leads, pipeline stages, automation sequences, invoice lines, document attachments, and more.
+**Scope — undo toast applies to all destructive actions, not just deletes:**
+- Deleting records (crew members, vehicles, leads, quotes, contracts, etc.) → Recycle Bin path
+- **Disconnecting an integration** → immediate undo restores the connection with full state (status, last sync, connected-since date)
+- **Revoking an API key** → immediate undo restores the key to active
+- **Deleting a webhook endpoint** → immediate undo re-adds the endpoint
+- Pipeline stage removals, automation sequence steps, invoice line items, document attachments, and more
+
+The key principle: **no destructive action in the app should be irreversible within 5 seconds.** The undo toast is the safety net before more formal recovery mechanisms (Recycle Bin, version history) are needed.
 
 **Soft Delete — Everything Goes to the Recycle Bin After Undo Expires:**
 - After the 5-second undo window closes, any deleted record (job, lead, invoice, customer, BOL, crew member, vehicle, document, etc.) moves to the **Recycle Bin**, not permanent deletion
@@ -1610,4 +1714,4 @@ Build in this sequence — each module depends on the one before it:
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-31 (fourth pass) — synced after Rate Sheets, Long Distance, Quotes, Integrations, and Role Preview Toggle were built; all prototype screens now complete*
+*Last audited: 2026-05-31 (fifth pass) — synced after: CRM pipeline made fully live (create leads, advance stages, localStorage persistence); Lead Detail made fully functional (stage selector, task completion, notes, hot toggle, value edit); Job Detail Timesheets tab added (crew-facing, no rates); Timesheets/Billing RBAC separation documented; Warehouse live incoming shipment scheduling form; undo toast scope expanded to cover disconnect/revoke/non-delete destructive actions*
