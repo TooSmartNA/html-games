@@ -21,6 +21,26 @@ A complete, cloud-based moving company management platform covering every touchp
 **Build approach:** Owner directs all product decisions. Developer (Claude Code) makes all technical implementation decisions. Owner does not write code manually — builds via AI-assisted development.  
 **Developer skill level:** Owner is a domain expert (moving industry) and strong product thinker, but a beginner at software development. All technical explanations should be clear and jargon-free. When there is one logical right answer technically, just implement it — don't ask.
 
+## Product Philosophy — The Market Opportunity
+
+90%+ of moving companies are operating on outdated systems. More advanced software exists — that's not the gap. The real gap is **adoption resistance**. These companies have built their workflows over years and are afraid that switching to something new will break what's already working and disrupt the people running it day to day.
+
+This is where MovePro has a unique and specific advantage:
+
+**The strategy is not to force change — it's to bridge to it.**
+
+MovePro is designed to be customizable enough that a company can keep their core processes largely intact while gaining the modern tools they've been missing. The customization is not about overwhelming them with options — it's about giving them enough control that the transition feels safe rather than threatening.
+
+- Pipeline stages are editable — they can match what the company already calls things
+- Task rules are configurable — their existing follow-up process maps directly in
+- Rate sheets follow their existing pricing model — no forced restructuring
+- Roles and permissions match their existing org structure — no one loses authority
+- Business lines (HHG/Commercial) can be used separately or together — fits how they're already organized
+
+The result: a client can look at MovePro and see their own business reflected back at them, just running on better infrastructure. That's the sales advantage. They're not being asked to abandon how they work — they're being shown a version of how they already work that doesn't require spreadsheets, whiteboards, and tribal knowledge to hold together.
+
+**Design principle that follows from this:** Every feature should have sensible defaults that work out of the box, and enough configuration to accommodate how a specific company already operates. We do not over-engineer customization for its own sake — we customize where it lowers the barrier to adoption. Simplicity wins interest. Flexibility closes deals.
+
 ---
 
 ## Prototype Status
