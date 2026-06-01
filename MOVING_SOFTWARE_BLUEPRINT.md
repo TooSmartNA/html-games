@@ -2750,6 +2750,49 @@ Build in this sequence — each module depends on the one before it:
 
 ---
 
+## Production Build — Module Roadmap
+
+This is the dependency-aware build order for the production app. Each module is listed with what it depends on and why. Follow this order to avoid rework — building a module before its dependencies exist means placeholder data or a rewrite later.
+
+**Session discipline:** One module per session. Compact (`/compact`) when the conversation gets long. The blueprint + memory files carry context forward — chat history does not need to be preserved.
+
+| # | Module | Depends On | Status |
+|---|--------|-----------|--------|
+| 1 | Customers | — | ✅ Done |
+| 2 | CRM & Leads | Customers | 🔲 Next |
+| 3 | Jobs & Orders | Customers | 🔲 |
+| 4 | Crew & Fleet | — | 🔲 |
+| 5 | Estimating | Customers, Crew | 🔲 |
+| 6 | Quotes & Proposals | Estimating | 🔲 |
+| 7 | Scheduling & Dispatch | Jobs, Crew | 🔲 |
+| 8 | Rate Sheets & Tariffs | — | 🔲 |
+| 9 | Timesheets | Jobs, Crew | 🔲 |
+| 10 | Billing & Invoicing | Jobs, Timesheets, Rate Sheets | 🔲 |
+| 11 | Claims | Jobs, Customers | 🔲 |
+| 12 | Warehouse & Storage | Customers | 🔲 |
+| 13 | Long Distance | Jobs | 🔲 |
+| 14 | BOL & Forms | Jobs | 🔲 |
+| 15 | Tasks | Jobs, CRM | 🔲 |
+| 16 | Reporting & Metrics | All above | 🔲 |
+| 17 | Automation | Tasks, CRM | 🔲 |
+| 18 | Integrations & API | — | 🔲 |
+| 19 | Admin & Settings | All above | 🔲 |
+| 20 | Recycle Bin | All above | 🔲 |
+| 21 | Customer Portal | Jobs, Billing, Warehouse | 🔲 |
+| 22 | Platform Admin | All above | 🔲 |
+
+**Why this order:**
+- Customers first — every other record (lead, job, invoice, claim) references a customer
+- CRM before Jobs — leads convert to jobs; the conversion flow needs both sides built
+- Crew before Estimating — estimates reference crew rates and crew headcount
+- Rate Sheets before Billing — invoices pull from rate sheet data
+- Timesheets before Billing — actuals billing depends on clock records
+- All operational modules before Reporting — reporting queries across everything
+- Admin & Settings last — permission matrix and config depend on all modules existing
+- Platform Admin last — manages all tenants; needs the full product to be meaningful
+
+---
+
 ## Production Build — Status & Implementation Log
 
 **Production repo:** `github.com/TooSmartNA/movepro` (private)  
