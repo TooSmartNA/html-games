@@ -2763,8 +2763,8 @@ This is the dependency-aware build order for the production app. Each module is 
 | 3 | Jobs & Orders | Customers | ✅ Done |
 | 4 | Crew & Fleet | — | ✅ Done |
 | 5 | Estimating | Customers, Crew | ✅ Done |
-| 6 | Quotes & Proposals | Estimating | 🔲 Next |
-| 7 | Scheduling & Dispatch | Jobs, Crew | 🔲 |
+| 6 | Quotes & Proposals | Estimating | ✅ Done |
+| 7 | Scheduling & Dispatch | Jobs, Crew | 🔲 Next |
 | 8 | Rate Sheets & Tariffs | — | 🔲 |
 | 9 | Timesheets | Jobs, Crew | 🔲 |
 | 10 | Billing & Invoicing | Jobs, Timesheets, Rate Sheets | 🔲 |
@@ -2833,10 +2833,11 @@ Manual type stubs live in `types/database.ts` to satisfy imports before `supabas
 | Job Detail | `/jobs/[id]` | ✅ Live | Status transitions (Start/Complete/Cancel), inline editing on all fields, estimates vs actuals variance indicator, activity feed, recycle bin snapshot on delete |
 | Crew & Fleet | `/crew` | ✅ Live | Two-tab layout: Crew Members (role filter, active toggle, inline edit-all-fields mode, add sheet, delete + undo) and Fleet (status summary strip, status dropdown per truck, inline edit, add sheet, delete + undo). Server-fetched, client tabs. |
 | Estimating | `/estimating`, `/estimating/new`, `/estimating/[id]` | ✅ Live | Full estimating tool: 72-item preset library (8 categories), live cubic-footage accumulation, difficulty selector (4 levels with configurable divisors), 1/2/3-day schedule toggle, auto truck allocation engine (greedy algorithm respects priority/capacity), manual truck override mode, absorbed-driver logic for truck+driver hourly pricing, supervisor-as-driver toggle, per-estimate rate overrides (crew rate, supervisor rate, fuel surcharge %, divisors), live pricing breakdown, optimization tips, Save Draft, Generate Quote (creates draft quote + navigates to /quotes), soft delete with undo + recycle bin. 3 new DB tables: `estimate_settings`, `estimate_truck_types`, `estimates`. |
+| Quotes & Proposals | `/quotes`, `/quotes/new`, `/quotes/[id]` | ✅ Live | Full quote lifecycle (Draft → Sent → Viewed → Accepted/Declined/Expired): KPI strip (pipeline value, win rate, monthly accepted), status-tab filter, inline status dropdown per row, duplicate, delete + undo + recycle bin. New quote form with 4 quick-start templates (Standard Local, Large Home, Commercial, Long Distance). Quote detail page: editable line items table (type/label/detail/amount per line, add/remove), live total, customer selector, valid-until date, notes, linked estimate + job references. Status-aware action strip (Send, Mark Viewed/Accepted/Declined, Resend, Duplicate, Convert to Job). Generate Quote from Estimating updated: sets quote_number, estimate_id, line item IDs. Auto-expire overdue sent/viewed quotes on list load. 8 new columns added to `quotes` table via ALTER TABLE migration. |
 
 ### Modules Remaining (Placeholder pages exist — to be built)
 
-Quotes, Dispatch, Billing, Rate Sheets, Claims, Long Distance, Warehouse, BOL & Forms, Tasks, Reporting, Automation, Integrations, Admin & Settings, Recycle Bin, Commercial Moving
+Dispatch, Billing, Rate Sheets, Claims, Long Distance, Warehouse, BOL & Forms, Tasks, Reporting, Automation, Integrations, Admin & Settings, Recycle Bin, Commercial Moving
 
 ### Key Patterns Established in Production Code
 
@@ -2849,4 +2850,4 @@ Quotes, Dispatch, Billing, Rate Sheets, Claims, Long Distance, Warehouse, BOL & 
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-31 (ninth pass) — Estimating module live. 5 of 22 modules complete: Customers ✅, CRM & Leads ✅, Jobs & Orders ✅, Crew & Fleet ✅, Estimating ✅. Build: 0 TypeScript errors.*
+*Last audited: 2026-06-01 (tenth pass) — Quotes & Proposals module live. 6 of 22 modules complete: Customers ✅, CRM & Leads ✅, Jobs & Orders ✅, Crew & Fleet ✅, Estimating ✅, Quotes & Proposals ✅. Build: 0 TypeScript errors.*
