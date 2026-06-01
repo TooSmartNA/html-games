@@ -2748,5 +2748,56 @@ Build in this sequence — each module depends on the one before it:
 
 ---
 
+---
+
+## Production Build — Status & Implementation Log
+
+**Production repo:** `github.com/TooSmartNA/movepro` (private)  
+**Stack:** Next.js 16, TypeScript, Tailwind CSS v4, shadcn/ui (base-ui variant), Supabase (PostgreSQL + Auth + RLS), Vercel  
+**Database:** Live Supabase project — 20 tables, full RLS, pg_cron ready  
+**Tenant #1:** South Hills Movers (owner's company — stress-test environment)  
+**Started:** 2026-05-31
+
+### Foundation (Complete)
+
+- Next.js 16 production app scaffolded at `C:\Users\Toosm\movepro`
+- All 20 database tables created with RLS policies, indexes, triggers, and helper functions
+- `get_company_id()` PostgreSQL function reads `company_id` from JWT — all queries auto-scoped via RLS without application-level filtering
+- `is_platform_admin()` PostgreSQL function enables owner to manage all tenants invisibly
+- `handle_new_user()` trigger auto-syncs `auth.users` → `public.users` on signup
+- Supabase Auth with custom JWT `app_metadata` stamps (`company_id`, `platform_admin`)
+- `proxy.ts` auth middleware (Next.js 16 convention) — every dashboard route is protected
+- Three Supabase client modes: `client.ts` (browser), `server.ts` (Server Components/Actions), `admin.ts` (service role, bypasses RLS for platform-admin operations only)
+- Deep navy sidebar + confident blue primary + Geist font — matches prototype visual design
+- AppSidebar: collapsible, permission-filtered nav, 7 groups matching prototype (Sales, Operations, Finance, Storage, Specialty, Intelligence, System)
+- TopNav: breadcrumb, search bar, notification button, user dropdown with sign-out
+- Login page: premium centered card on dark navy background
+
+### TypeScript Note for Reviewer
+
+Manual type stubs live in `types/database.ts` to satisfy imports before `supabase gen types` is run against the live DB. Server Actions use `as AnyClient` casts to bypass Supabase's generic insert/update inference until generated types are in place. This is a known temporary pattern — running `npx supabase gen types typescript --project-id euyrdlxzakeppxexgero > types/database.ts` will replace all manual stubs with auto-generated, fully-typed definitions. No logic is affected.
+
+### Modules Built (Production — real DB, real auth)
+
+| Module | Route | Status | Notes |
+|--------|-------|--------|-------|
+| Dashboard | `/dashboard` | ✅ Live | KPI cards query live DB (scheduled jobs, leads, customers, outstanding AR) — all RLS-scoped |
+| Customers | `/customers` | ✅ Live | Full CRUD: list with search, Add Customer sheet, soft delete + undo toast + recycle bin snapshot, inline field editing, job history, auto-save notes |
+| Customer Profile | `/customers/[id]` | ✅ Live | Inline editing on all fields, job history linked, notes auto-save on blur |
+
+### Modules Remaining (Placeholder pages exist — to be built)
+
+CRM, Estimating, Quotes, Jobs, Dispatch, Crew & Fleet, Billing, Rate Sheets, Claims, Long Distance, Warehouse, BOL & Forms, Tasks, Reporting, Automation, Integrations, Admin & Settings, Recycle Bin, Commercial Moving
+
+### Key Patterns Established in Production Code
+
+- **Server Actions** for all mutations — `"use server"` functions in `actions.ts` colocated with the route
+- **`revalidatePath()`** after every mutation — Next.js cache invalidation keeps the UI fresh
+- **Optimistic UI + undo** — client removes the record immediately, shows a 6-second sonner toast with Undo, then commits the server delete after a 500ms delay. If Undo is clicked, `restoreCustomer()` is called and the record is re-inserted into local state.
+- **Recycle bin snapshot** — every soft delete writes a full JSON snapshot of the record to the `recycle_bin` table before deleting, enabling full restore
+- **`lib/supabase/query.ts`** — `row<T>()` and `rows<T>()` helpers for type-safe Supabase query results before gen types are run
+
+---
+
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-31 (fifth pass) — synced after: CRM pipeline made fully live (create leads, advance stages, localStorage persistence); Lead Detail made fully functional (stage selector, task completion, notes, hot toggle, value edit); Job Detail Timesheets tab added (crew-facing, no rates); Timesheets/Billing RBAC separation documented; Warehouse live incoming shipment scheduling form; undo toast scope expanded to cover disconnect/revoke/non-delete destructive actions*
+*Last audited: 2026-05-31 (sixth pass) — Production build started. Foundation complete. Customers module live with real Supabase backend. Production repo: github.com/TooSmartNA/movepro*
