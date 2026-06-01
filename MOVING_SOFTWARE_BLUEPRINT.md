@@ -1497,8 +1497,79 @@ These rules apply automatically during estimation and are visible on the estimat
 - Branch/location management (multi-location companies)
 - Notification preferences per role
 - Audit log (who changed what, when, from what value to what value)
-- Data import tools (migrate from CompuMove or spreadsheets)
-- Backup and export
+- Data import tools (migrate from CompuMove or spreadsheets) — see full section below
+- Backup and export — see full section below
+
+#### Data Import, Export & Migration
+
+**Philosophy:** A client should never feel locked in. Easy import lowers the barrier to switching to MovePro. Easy export builds trust that their data is always theirs. Both are sales advantages.
+
+---
+
+**Import — Onboarding a New Client's Historical Data**
+
+When a moving company switches to MovePro, they bring years of existing data. The import system lets them bring that data in rather than starting from zero. This is part of white-glove onboarding.
+
+**What can be imported:**
+
+| Data Type | Format | Notes |
+|-----------|--------|-------|
+| Customers / contacts | CSV | Name, phone, email, address, account type |
+| Job history | CSV | Past jobs with dates, origin, destination, type, status, value |
+| Crew members | CSV | Name, role, team, phone, pay rate |
+| Vehicles / fleet | CSV | Unit, type, make, year, license plate |
+| Storage accounts / vaults | CSV | Vault info, customer link, rate, start date |
+| Rate sheets | CSV or manual entry | Local rates, truck rates |
+| Outstanding invoices / AR | CSV | Open invoices being carried over |
+
+**Import flow (admin-only):**
+1. Platform owner or client's Admin uploads a CSV in the import tool
+2. System shows a column mapping screen — drag to match their column headers to MovePro fields
+3. Preview of first 10 rows before confirming
+4. Import runs; errors are flagged row-by-row (duplicate detected, missing required field, etc.)
+5. Import log saved showing what was created, what was skipped, and why
+
+**CompuMove migration:**
+CompuMove is the primary system MovePro clients are migrating from. CompuMove allows data export in various formats. The import tool will include a "CompuMove import" preset that pre-maps the known CompuMove export columns to MovePro fields automatically — reducing manual mapping for the most common migration path.
+
+**Other systems:**
+Generic CSV import handles data from any system (spreadsheets, MoveitPro, SmartMoving, etc.) via the manual column mapping screen.
+
+---
+
+**Export — Data Portability**
+
+Clients can export their own data at any time without needing to contact support. This is a trust feature — clients know they're never trapped.
+
+**What can be exported:**
+
+| Data Type | Format |
+|-----------|--------|
+| All customers | CSV |
+| All jobs (full history) | CSV |
+| All invoices | CSV + PDF (individual) |
+| All crew timesheets | CSV |
+| All BOLs and documents | ZIP of PDFs |
+| Full account data export | CSV bundle (all tables) |
+
+**Export access:**
+- Company Admins can export all data for their company at any time
+- Individual module exports available from within each module (e.g., export from the Reporting page)
+- Full account data export available in Admin & Settings → Data
+- Platform owner can trigger exports on behalf of a company (for offboarding)
+
+---
+
+**Offboarding / Account Closure**
+
+When a client ends their contract:
+1. Platform owner triggers a full data export (CSV bundle + PDF documents as ZIP)
+2. Export is delivered to the client's Admin via email download link (Supabase Storage, time-limited URL)
+3. Account is set to `suspended` — data is retained for 90 days before permanent deletion
+4. Client is notified of the 90-day retention window
+5. Client can request permanent deletion before 90 days if required for compliance
+
+Financial records (invoices, payments) are retained for 7 years minimum regardless of account status, consistent with standard business record-keeping requirements.
 
 #### Deleted Records & Data Recovery System
 The moving industry is highly dependent on records. An accidental deletion can cause operational, legal, and billing problems. Nothing in this platform is permanently deleted without a deliberate multi-step admin process. The goal: make recovery easy, make permanent deletion hard.
@@ -1891,6 +1962,8 @@ New companies are provisioned with sensible defaults so they can be operational 
 - Default rate sheet (local crew rates, CZAR-LITE grid, standard fuel surcharge)
 
 All defaults are editable by the client's Admin immediately after login.
+
+**Historical data migration:** After the account is provisioned, the platform owner assists with importing the client's existing data (customers, job history, crew, fleet, outstanding invoices) via the CSV import tool in Admin. CompuMove exports map automatically. See the Data Import & Migration section in Module 17 for full detail.
 
 **Phase 2 — Self-Serve Signup:**
 When the business scales beyond what manual onboarding can handle, a public-facing signup flow will be added:
