@@ -2759,8 +2759,8 @@ This is the dependency-aware build order for the production app. Each module is 
 | # | Module | Depends On | Status |
 |---|--------|-----------|--------|
 | 1 | Customers | — | ✅ Done |
-| 2 | CRM & Leads | Customers | 🔲 Next |
-| 3 | Jobs & Orders | Customers | 🔲 |
+| 2 | CRM & Leads | Customers | ✅ Done |
+| 3 | Jobs & Orders | Customers | 🔲 Next |
 | 4 | Crew & Fleet | — | 🔲 |
 | 5 | Estimating | Customers, Crew | 🔲 |
 | 6 | Quotes & Proposals | Estimating | 🔲 |
@@ -2827,6 +2827,8 @@ Manual type stubs live in `types/database.ts` to satisfy imports before `supabas
 | Dashboard | `/dashboard` | ✅ Live | KPI cards query live DB (scheduled jobs, leads, customers, outstanding AR) — all RLS-scoped |
 | Customers | `/customers` | ✅ Live | Full CRUD: list with search, Add Customer sheet, soft delete + undo toast + recycle bin snapshot, inline field editing, job history, auto-save notes |
 | Customer Profile | `/customers/[id]` | ✅ Live | Inline editing on all fields, job history linked, notes auto-save on blur |
+| CRM & Leads | `/crm` | ✅ Live | Pipeline (kanban) + Task-driven views; urgency computed per stage; optimistic stage changes; New Lead sheet with all fields; soft delete with undo |
+| Lead Detail | `/crm/[id]` | ✅ Live | Stage dropdown, urgency task banner, full inline editing, salesperson/source dropdowns, services multi-select, hot toggle, activity feed with note posting |
 
 ### Modules Remaining (Placeholder pages exist — to be built)
 
