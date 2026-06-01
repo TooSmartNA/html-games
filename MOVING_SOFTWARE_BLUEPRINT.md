@@ -1812,6 +1812,122 @@ The owner directs **what** to build (product decisions, workflows, business rule
 
 ---
 
+### White-Labeling
+
+**Decision: Yes — full white-label support.**
+
+Each client company can make the platform feel like their own branded software, not a generic SaaS tool. This is expected at the $10k/month price point and is already partially architected through the Theme & Branding admin module.
+
+**What white-labeling covers:**
+
+- **Logo** — company logo appears in the sidebar header and on all generated documents (BOL, estimates, invoices). Light and dark variants uploadable. Stored in Supabase Storage.
+- **Colors** — primary accent color, sidebar color, button color — all configurable via the Theme & Branding tab in Admin. Stored in `companies.settings` as JSONB.
+- **Custom domain** — each company can have the platform served at their own domain or subdomain (e.g., `dispatch.tampabaymovers.com`) instead of `app.movepro.io`. Implemented via Vercel's custom domain API — a domain is added programmatically to the Vercel project when a company is onboarded.
+- **Customer portal subdomain** — the customer-facing portal is served at a separate subdomain (e.g., `portal.tampabaymovers.com`). Same mechanism.
+- **Document branding** — all PDFs (BOL, estimate, invoice, timesheet) use the company's logo, colors, name, DOT/MC numbers, and contact info in the header and footer.
+
+**What white-labeling does NOT cover in V1:**
+- Completely custom CSS/design systems — the layout structure stays consistent
+- Removing "Powered by MovePro" from documents (this can be toggled per plan tier later)
+
+**Technical implementation:**
+- `companies.settings` stores theme config: `{ primaryColor, sidebarColor, logoUrl, logoUrlDark }`
+- At runtime, the Next.js layout reads the authenticated user's company settings and injects CSS custom properties
+- Custom domains are added to Vercel via the Vercel API during manual onboarding; DNS instructions are provided to the client
+- No per-company deployments — one codebase, one deployment, domains routed to the same app
+
+---
+
+### Client Onboarding
+
+**Decision: Manual onboarding for V1. Self-serve as Phase 2.**
+
+At $10k/month, deals are large enough to warrant white-glove onboarding. The platform owner (you) manually provisions each new client company. There is no public-facing signup flow in V1.
+
+**Manual onboarding process:**
+1. Contract signed
+2. Platform owner uses the **Internal Platform Admin** (see below) to create the new company record
+3. System seeds the company with default configuration: roles, pipeline stages (HHG and Commercial), truck types, task rules, and rate sheet defaults
+4. Platform owner creates the client's first Admin user account — credentials sent to client
+5. Client's Admin logs in, customizes branding, adds their team, configures their specific rates and settings
+6. Platform owner adds the client's custom domain to Vercel (5-minute step)
+
+**Seed data on company creation:**
+New companies are provisioned with sensible defaults so they can be operational quickly:
+- Default roles (Admin, HHG Coordinator, Dispatcher, Billing, Crew/Driver, etc.)
+- HHG and Commercial pipeline stages
+- Standard truck types (Cargo Van, Sprinter, 16ft, 26ft, 53ft)
+- Default task rules (12 standard trigger → task rules)
+- Default rate sheet (local crew rates, CZAR-LITE grid, standard fuel surcharge)
+
+All defaults are editable by the client's Admin immediately after login.
+
+**Phase 2 — Self-Serve Signup:**
+When the business scales beyond what manual onboarding can handle, a public-facing signup flow will be added:
+- Marketing website with pricing page
+- Stripe checkout for subscription purchase
+- Automated company provisioning on successful payment
+- Guided onboarding wizard (business name, DOT/MC, first user, business line selection)
+
+This is not built in V1. The architecture supports it — adding self-serve is adding a signup page and an automated version of the manual provisioning step.
+
+---
+
+### Subscription Billing & Access Control
+
+**Decision: Billing is external. Access is controlled by a single field the billing system updates.**
+
+MovePro does not manage client billing internally. Client invoicing and payment collection happens outside the app — via Stripe, a CRM, or however the platform owner handles contracts. The app only needs to know one thing: is this company's subscription active or not?
+
+**How it works:**
+
+The `companies` table has a `subscription_status` field:
+```
+active    → full access
+trial     → full access, banner showing trial expiry date
+suspended → login blocked, "subscription inactive" screen shown
+```
+
+An external billing system (Stripe subscriptions, manual update, or a simple internal dashboard) updates this field via a secure webhook endpoint:
+```
+POST /api/platform/subscription-update
+{ company_id, status, trial_ends_at }
+Bearer: PLATFORM_SECRET_KEY
+```
+
+This endpoint is not accessible to clients — it is called only by the platform owner's billing system or manually by the platform owner.
+
+**What clients experience:**
+- Active: no indication of billing in the app at all — they just use it
+- Trial: a subtle banner showing days remaining; otherwise full access
+- Suspended: on next login, a full-screen "Your subscription is inactive — contact support" page. No data is deleted. Access resumes the moment status is set back to `active`.
+
+**Platform owner's billing view:**
+The Internal Platform Admin (see below) shows all companies with their current `subscription_status`, trial end date, and contract start date. The platform owner can manually toggle status from here without touching the database directly.
+
+**Phase 2 — Stripe integration:**
+When self-serve billing is added, Stripe webhooks (`customer.subscription.updated`, `invoice.payment_failed`, etc.) will hit the subscription-update endpoint automatically. The manual override will remain as a fallback.
+
+---
+
+### Internal Platform Admin
+
+A separate, protected admin layer that only the platform owner (you) can access. This is NOT the company-level Admin & Settings — this is your dashboard to manage all client companies.
+
+**Access:** A special `platform_admin` flag on specific user accounts. Protected by a separate auth check; not accessible to any client user regardless of their role.
+
+**What it shows:**
+- List of all companies with: name, plan, subscription status, user count, date created, last active
+- Per-company detail: users, storage usage, job count, integration status
+- Actions: create new company (provisioning), toggle subscription status, add custom domain, view company as admin (impersonation for support purposes)
+- Subscription status update form (manual override without needing to touch Supabase directly)
+
+**What it is NOT:**
+- Not a billing dashboard — payment processing and invoicing happens in your external system
+- Not visible to any client — completely separate from the in-app admin that clients use
+
+---
+
 ### Multi-Tenancy Model
 
 **Decision: Full multi-tenant SaaS from day one.**
@@ -1877,7 +1993,11 @@ Full table definitions. All tables include `created_at TIMESTAMPTZ DEFAULT now()
 | email | text | |
 | logo_url | text | Supabase Storage URL |
 | subscription_status | text | active / trial / suspended |
-| settings | jsonb | Theme, default business line, etc. |
+| trial_ends_at | timestamptz | Null if not on trial |
+| custom_domain | text | e.g. dispatch.tampabaymovers.com — added to Vercel on onboarding |
+| portal_domain | text | e.g. portal.tampabaymovers.com |
+| settings | jsonb | `{ primaryColor, sidebarColor, logoUrl, logoUrlDark, defaultBusinessLine }` |
+| contract_start | date | When client signed — for platform owner reference |
 
 **`users`**
 | Column | Type | Notes |
@@ -1889,6 +2009,7 @@ Full table definitions. All tables include `created_at TIMESTAMPTZ DEFAULT now()
 | email | text | |
 | phone | text | |
 | active | boolean | |
+| platform_admin | boolean | Default false. True only for platform owner accounts. Grants access to Internal Platform Admin. Never exposed to client users. |
 
 **`roles`**
 | Column | Type | Notes |
