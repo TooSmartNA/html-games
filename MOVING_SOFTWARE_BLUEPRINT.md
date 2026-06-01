@@ -11,6 +11,16 @@
 
 A complete, cloud-based moving company management platform covering every touchpoint of the business — from the first inbound lead to the final invoice, warehouse receipt, and reporting. Built modular so features can be developed one at a time and connected together.
 
+## Business Context
+
+**Product type:** B2B SaaS — sold to moving companies  
+**Target market:** Mid-to-large moving companies (HHG, commercial, long distance, or mixed)  
+**Pricing target:** ~$10,000/month per client — enterprise positioning, white-glove onboarding, full white-label  
+**Competitive benchmark:** Exceeds CompuMove 8 (the current industry standard desktop software) in every category  
+**Launch strategy:** Stress-test with the owner's own moving company first as Tenant #1. Validate the product in a real operational environment before selling to external clients.  
+**Build approach:** Owner directs all product decisions. Developer (Claude Code) makes all technical implementation decisions. Owner does not write code manually — builds via AI-assisted development.  
+**Developer skill level:** Owner is a domain expert (moving industry) and strong product thinker, but a beginner at software development. All technical explanations should be clear and jargon-free. When there is one logical right answer technically, just implement it — don't ask.
+
 ---
 
 ## Prototype Status
