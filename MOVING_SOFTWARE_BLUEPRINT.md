@@ -2760,8 +2760,8 @@ This is the dependency-aware build order for the production app. Each module is 
 |---|--------|-----------|--------|
 | 1 | Customers | — | ✅ Done |
 | 2 | CRM & Leads | Customers | ✅ Done |
-| 3 | Jobs & Orders | Customers | 🔲 Next |
-| 4 | Crew & Fleet | — | 🔲 |
+| 3 | Jobs & Orders | Customers | ✅ Done |
+| 4 | Crew & Fleet | — | 🔲 Next |
 | 5 | Estimating | Customers, Crew | 🔲 |
 | 6 | Quotes & Proposals | Estimating | 🔲 |
 | 7 | Scheduling & Dispatch | Jobs, Crew | 🔲 |
@@ -2829,10 +2829,12 @@ Manual type stubs live in `types/database.ts` to satisfy imports before `supabas
 | Customer Profile | `/customers/[id]` | ✅ Live | Inline editing on all fields, job history linked, notes auto-save on blur |
 | CRM & Leads | `/crm` | ✅ Live | Pipeline (kanban) + Task-driven views; urgency computed per stage; optimistic stage changes; New Lead sheet with all fields; soft delete with undo |
 | Lead Detail | `/crm/[id]` | ✅ Live | Stage dropdown, urgency task banner, full inline editing, salesperson/source dropdowns, services multi-select, hot toggle, activity feed with note posting |
+| Jobs & Orders | `/jobs` | ✅ Live | List with KPI strip (today/scheduled/in-progress/completed this month), status-tab filter, search, inline status advance, optimistic delete with undo |
+| Job Detail | `/jobs/[id]` | ✅ Live | Status transitions (Start/Complete/Cancel), inline editing on all fields, estimates vs actuals variance indicator, activity feed, recycle bin snapshot on delete |
 
 ### Modules Remaining (Placeholder pages exist — to be built)
 
-CRM, Estimating, Quotes, Jobs, Dispatch, Crew & Fleet, Billing, Rate Sheets, Claims, Long Distance, Warehouse, BOL & Forms, Tasks, Reporting, Automation, Integrations, Admin & Settings, Recycle Bin, Commercial Moving
+Estimating, Quotes, Dispatch, Crew & Fleet, Billing, Rate Sheets, Claims, Long Distance, Warehouse, BOL & Forms, Tasks, Reporting, Automation, Integrations, Admin & Settings, Recycle Bin, Commercial Moving
 
 ### Key Patterns Established in Production Code
 
@@ -2845,4 +2847,4 @@ CRM, Estimating, Quotes, Jobs, Dispatch, Crew & Fleet, Billing, Rate Sheets, Cla
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-31 (sixth pass) — Production build started. Foundation complete. Customers module live with real Supabase backend. Production repo: github.com/TooSmartNA/movepro*
+*Last audited: 2026-05-31 (seventh pass) — Jobs & Orders module live. 3 of 22 modules complete: Customers ✅, CRM & Leads ✅, Jobs & Orders ✅. Build: 0 TypeScript errors.*
