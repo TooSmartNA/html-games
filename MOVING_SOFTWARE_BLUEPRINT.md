@@ -2761,8 +2761,8 @@ This is the dependency-aware build order for the production app. Each module is 
 | 1 | Customers | — | ✅ Done |
 | 2 | CRM & Leads | Customers | ✅ Done |
 | 3 | Jobs & Orders | Customers | ✅ Done |
-| 4 | Crew & Fleet | — | 🔲 Next |
-| 5 | Estimating | Customers, Crew | 🔲 |
+| 4 | Crew & Fleet | — | ✅ Done |
+| 5 | Estimating | Customers, Crew | 🔲 Next |
 | 6 | Quotes & Proposals | Estimating | 🔲 |
 | 7 | Scheduling & Dispatch | Jobs, Crew | 🔲 |
 | 8 | Rate Sheets & Tariffs | — | 🔲 |
@@ -2831,6 +2831,7 @@ Manual type stubs live in `types/database.ts` to satisfy imports before `supabas
 | Lead Detail | `/crm/[id]` | ✅ Live | Stage dropdown, urgency task banner, full inline editing, salesperson/source dropdowns, services multi-select, hot toggle, activity feed with note posting |
 | Jobs & Orders | `/jobs` | ✅ Live | List with KPI strip (today/scheduled/in-progress/completed this month), status-tab filter, search, inline status advance, optimistic delete with undo |
 | Job Detail | `/jobs/[id]` | ✅ Live | Status transitions (Start/Complete/Cancel), inline editing on all fields, estimates vs actuals variance indicator, activity feed, recycle bin snapshot on delete |
+| Crew & Fleet | `/crew` | ✅ Live | Two-tab layout: Crew Members (role filter, active toggle, inline edit-all-fields mode, add sheet, delete + undo) and Fleet (status summary strip, status dropdown per truck, inline edit, add sheet, delete + undo). Server-fetched, client tabs. |
 
 ### Modules Remaining (Placeholder pages exist — to be built)
 
@@ -2847,4 +2848,4 @@ Estimating, Quotes, Dispatch, Crew & Fleet, Billing, Rate Sheets, Claims, Long D
 ---
 
 *Document created: 2026-05-30*  
-*Last audited: 2026-05-31 (seventh pass) — Jobs & Orders module live. 3 of 22 modules complete: Customers ✅, CRM & Leads ✅, Jobs & Orders ✅. Build: 0 TypeScript errors.*
+*Last audited: 2026-05-31 (eighth pass) — Crew & Fleet module live. 4 of 22 modules complete: Customers ✅, CRM & Leads ✅, Jobs & Orders ✅, Crew & Fleet ✅. Build: 0 TypeScript errors.*
